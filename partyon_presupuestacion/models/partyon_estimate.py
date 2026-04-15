@@ -369,7 +369,7 @@ class PartyonEstimate(models.Model):
                 'product_id': product.id if product else False,
                 'name': line.name or (product.display_name if product else 'Línea de presupuesto'),
                 'product_uom_qty': line.quantity,
-                'product_uom': line.uom_id.id if line.uom_id else False,
+                'product_uom_id': line.uom_id.id if line.uom_id else False,
                 'price_unit': line.sale_price_unit,
             }))
 

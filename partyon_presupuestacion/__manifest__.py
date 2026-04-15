@@ -28,9 +28,11 @@
         'views/partyon_estimate_views.xml',
         'views/menu_views.xml',
     ],
-    'demo': [],
+    'demo': [
+        'demo/product.category.csv',
+        'demo/product.template.csv',
+    ],
     'installable': True,
     'application': True,
     'auto_install': False,
 }
-
