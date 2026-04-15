@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_partyon_estimate_user,partyon.estimate.user,model_partyon_estimate,group_partyon_user,1,1,1,0
+access_partyon_estimate_manager,partyon.estimate.manager,model_partyon_estimate,group_partyon_manager,1,1,1,1
+access_partyon_estimate_line_user,partyon.estimate.line.user,model_partyon_estimate_line,group_partyon_user,1,1,1,0
+access_partyon_estimate_line_manager,partyon.estimate.line.manager,model_partyon_estimate_line,group_partyon_manager,1,1,1,1
+

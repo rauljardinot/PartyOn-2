@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Categoría del módulo -->
+    <record id="module_category_partyon" model="ir.module.category">
+        <field name="name">PartyOn</field>
+        <field name="description">Módulos de gestión PartyOn</field>
+        <field name="sequence">100</field>
+    </record>
+
+    <!-- Privilegio de presupuestación (vincula categoría con grupos) -->
+    <record id="res_groups_privilege_partyon" model="res.groups.privilege">
+        <field name="name">Presupuestación PartyOn</field>
+        <field name="sequence">100</field>
+        <field name="category_id" ref="module_category_partyon"/>
+    </record>
+
+    <!-- Grupo: Usuario de presupuestación -->
+    <record id="group_partyon_user" model="res.groups">
+        <field name="name">Usuario de presupuestación</field>
+        <field name="sequence">10</field>
+        <field name="privilege_id" ref="res_groups_privilege_partyon"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- Grupo: Responsable de presupuestación -->
+    <record id="group_partyon_manager" model="res.groups">
+        <field name="name">Responsable de presupuestación</field>
+        <field name="sequence">20</field>
+        <field name="privilege_id" ref="res_groups_privilege_partyon"/>
+        <field name="implied_ids" eval="[(4, ref('group_partyon_user'))]"/>
+    </record>
+
+    <!-- Regla multi-compañía: partyon.estimate -->
+    <record id="partyon_estimate_comp_rule" model="ir.rule">
+        <field name="name">Presupuestos: regla multi-compañía</field>
+        <field name="model_id" ref="model_partyon_estimate"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+    <!-- Regla multi-compañía: partyon.estimate.line -->
+    <record id="partyon_estimate_line_comp_rule" model="ir.rule">
+        <field name="name">Líneas presupuesto: regla multi-compañía</field>
+        <field name="model_id" ref="model_partyon_estimate_line"/>
+        <field name="global" eval="True"/>
+        <field name="domain_force">['|', ('company_id', '=', False), ('company_id', 'in', company_ids)]</field>
+    </record>
+
+</odoo>
+

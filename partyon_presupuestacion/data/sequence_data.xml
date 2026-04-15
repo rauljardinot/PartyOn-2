@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Secuencia para presupuestos internos -->
+    <record id="seq_partyon_estimate" model="ir.sequence">
+        <field name="name">Presupuesto Interno PartyOn</field>
+        <field name="code">partyon.estimate</field>
+        <field name="prefix">EST/%(range_year)s/</field>
+        <field name="padding">5</field>
+        <field name="number_increment">1</field>
+        <field name="number_next">1</field>
+    </record>
+
+    <!-- Producto de servicio genérico para cotizaciones -->
+    <record id="product_partyon_service" model="product.product">
+        <field name="name">Servicio PartyOn - Trabajo personalizado</field>
+        <field name="type">service</field>
+        <field name="categ_id" ref="product.product_category_services"/>
+        <field name="sale_ok" eval="True"/>
+        <field name="purchase_ok" eval="False"/>
+        <field name="list_price">0.0</field>
+    </record>
+
+</odoo>
+
