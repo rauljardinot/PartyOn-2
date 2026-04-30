@@ -3,4 +3,5 @@ access_partyon_estimate_user,partyon.estimate.user,model_partyon_estimate,group_
 access_partyon_estimate_manager,partyon.estimate.manager,model_partyon_estimate,group_partyon_manager,1,1,1,1
 access_partyon_estimate_line_user,partyon.estimate.line.user,model_partyon_estimate_line,group_partyon_user,1,1,1,0
 access_partyon_estimate_line_manager,partyon.estimate.line.manager,model_partyon_estimate_line,group_partyon_manager,1,1,1,1
-
+access_partyon_estimate_template_user,partyon.estimate.template.user,model_partyon_estimate_template,group_partyon_user,1,1,1,0
+access_partyon_estimate_template_manager,partyon.estimate.template.manager,model_partyon_estimate_template,group_partyon_manager,1,1,1,1

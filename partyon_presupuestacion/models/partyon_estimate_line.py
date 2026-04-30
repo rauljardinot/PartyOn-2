@@ -17,6 +17,11 @@ class PartyonEstimateLine(models.Model):
         ondelete='cascade',
         index=True,
     )
+    # Relación con el Template:
+    template_id = fields.Many2one(
+        'partyon.estimate.template',
+        string='Plantilla',
+    )
     company_id = fields.Many2one(
         related='estimate_id.company_id',
         store=True,
