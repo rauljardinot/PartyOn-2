@@ -34,6 +34,7 @@
     <menuitem id="partyon_menu_estimates_templates_list"
               name="Plantillas de Presupuesto"
               parent="partyon_menu_estimates_templates"
+              action="partyon_estimate_template_action"
               sequence="10"/>
 
 </odoo>

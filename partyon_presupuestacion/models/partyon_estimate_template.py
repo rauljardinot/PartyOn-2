@@ -19,4 +19,5 @@ class PartyonEstimateTemplate(models.Model):
         string='Nombre'
     )
     description = fields.Char(string='Descripcion')
+    tag = fields.Char(string='Tag')
 

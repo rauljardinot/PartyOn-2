@@ -13,7 +13,7 @@ class PartyonEstimateLine(models.Model):
     estimate_id = fields.Many2one(
         'partyon.estimate',
         string='Presupuesto',
-        required=True,
+        required=False, # TODO: Preguntar. Lo he hecho False ya que si hay lineas del Template no tienen por que pertenecer a un estimate.
         ondelete='cascade',
         index=True,
     )

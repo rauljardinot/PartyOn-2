@@ -239,6 +239,9 @@ class PartyonEstimate(models.Model):
         readonly=True,
     )
 
+    #  Template
+    template_id = fields.Many2one('partyon.estimate.template', string='Plantilla de presupuesto')
+
     # -------------------------------------------------------------------------
     # COMPUTED: TOTALES
     # -------------------------------------------------------------------------
@@ -441,3 +444,16 @@ class PartyonEstimate(models.Model):
                 )
             rec.state = 'customer_approved'
 
+    # -------------------------------------------------------------------------
+    # APLICAR LA PLANTILLA AL PRESUPUESTO
+    # -------------------------------------------------------------------------
+
+    def action_apply_estimate(self):
+        for rec in self:
+            if rec.template_id:
+                rec.line_ids.unlink() # TODO: Preguntar si es mejor hacer un False.
+                rec.line_ids = rec.template_id.partyon_estimate_lines_ids
+                # TODO: Pregutnar si se puede hacer así para que no pase referencia en memoria.
+
+            else:
+                raise UserError("Debe añadir una plantilla antes de pulsar el botón!")
