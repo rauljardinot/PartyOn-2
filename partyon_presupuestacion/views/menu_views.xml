@@ -26,5 +26,16 @@
               groups="group_partyon_manager"
               sequence="90"/>
 
+    <menuitem id="partyon_menu_estimates_templates"
+              name="Plantillas"
+              parent="partyon_menu_root"
+              sequence="10"/>
+
+    <menuitem id="partyon_menu_estimates_templates_list"
+              name="Plantillas de Presupuesto"
+              parent="partyon_menu_estimates_templates"
+              action="partyon_estimate_template_action"
+              sequence="10"/>
+
 </odoo>
 

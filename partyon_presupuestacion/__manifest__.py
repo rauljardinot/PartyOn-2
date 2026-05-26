@@ -26,6 +26,7 @@
         'security/ir.model.access.csv',
         'data/sequence_data.xml',
         'views/partyon_estimate_views.xml',
+        'views/partyon_estimate_template.xml',
         'views/menu_views.xml',
     ],
     # 'demo': [
@@ -35,4 +36,5 @@
     'installable': True,
     'application': True,
     'auto_install': False,
+    'icon': 'static/description/icon.png',
 }

@@ -43,6 +43,12 @@
                             string="Volver a borrador"
                             type="object"
                             invisible="state not in ('cancel', 'review')"/>
+                    <button name="action_apply_estimate"
+                            string="Aplicar Plantilla"
+                            type="object"
+                            class="btn-primary"
+                            confirm="Esta acción eliminará las lineas actuales y traerá las de la plantilla. ¿ Está seguro de esto?"
+                            invisible="not template_id"/>
                     <field name="state"
                            widget="statusbar"
                            statusbar_visible="draft,review,approved,quoted,customer_approved"/>
@@ -68,6 +74,7 @@
                             <field name="opportunity_id"/>
                             <field name="project_id"/>
                             <field name="user_id"/>
+                            <field name="template_id"/>
                         </group>
                         <group>
                             <field name="date"/>

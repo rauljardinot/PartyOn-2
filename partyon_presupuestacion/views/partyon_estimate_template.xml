@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--     Lista del modelo-->
+    <record id="partyon_estimate_template_list" model="ir.ui.view">
+        <field name="name">partyon.estimate.template.list</field>
+        <field name="model">partyon.estimate.template</field>
+        <field name="arch" type="xml">
+            <list string="Plantillas de presupuesto">
+                <field name="name"/>
+                <field name="description"/>
+                <field name="tag"/>
+            </list>
+        </field>
+    </record>
+
+    <!--    Formulario -->
+    <record id="partyon_estimate_template_form" model="ir.ui.view">
+        <field name="name">partyon_estimate_template_form</field>
+        <field name="model">partyon.estimate.template</field>
+        <field name="arch" type="xml">
+            <form string="Plantilla de presupuesto">
+                <header>
+                    <h2>Aquí irán los botones</h2>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <field name="description"/>
+                        <field name="tag"/>
+                    </group>
+                    <notebook>
+                        <page string="Líneas de presupuesto" name="lines">
+                            <field name="partyon_estimate_lines_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="product_id"/>
+                                    <field name="name"/>
+                                    <field name="quantity"/>
+                                    <field name="uom_id"/>
+                                    <field name="width" optional="show"/>
+                                    <field name="height" optional="show"/>
+                                    <field name="depth" optional="hide"/>
+                                    <field name="area" optional="hide"/>
+                                    <field name="cost_material_unit"/>
+                                    <field name="waste_percent" optional="show"/>
+                                    <field name="cost_waste" optional="hide"/>
+                                    <field name="cost_electricity" optional="show"/>
+                                    <field name="cost_machine" optional="show"/>
+                                    <field name="cost_labor_unit" optional="show"/>
+                                    <field name="cost_design_time" optional="hide"/>
+                                    <field name="cost_design_rate" optional="hide"/>
+                                    <field name="cost_handling_time" optional="hide"/>
+                                    <field name="cost_handling_rate" optional="hide"/>
+                                    <field name="cost_painting" optional="show"/>
+                                    <field name="cost_shipping" optional="show"/>
+                                    <field name="cost_extra" optional="show"/>
+                                    <field name="line_subtotal" sum="Total"/>
+                                    <field name="sale_price_unit" optional="show"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+<!--    Action de la vista -->
+    <record id="partyon_estimate_template_action" model="ir.actions.act_window">
+        <field name="name">Plantillas de Presupuesto</field>
+        <field name="res_model">partyon.estimate.template</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Crear una nueva plantilla de presupuesto
+            </p>
+            <p>
+                Crear una nueva plantilla de presupuestos para usar en los presupuestos internos.
+            </p>
+        </field>
+    </record>
+</odoo>

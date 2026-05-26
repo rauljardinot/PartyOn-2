@@ -239,6 +239,9 @@ class PartyonEstimate(models.Model):
         readonly=True,
     )
 
+    #  Template
+    template_id = fields.Many2one('partyon.estimate.template', string='Plantilla de presupuesto')
+
     # -------------------------------------------------------------------------
     # COMPUTED: TOTALES
     # -------------------------------------------------------------------------
@@ -275,12 +278,24 @@ class PartyonEstimate(models.Model):
             if margin_type == 'percent':
                 margin_amt = subtotal * (margin_value / 100.0)
                 suggested = subtotal + margin_amt
+                # En el caso de que se seleccione el porcentaje, entonces será igual que el seleccionado.
+                print("Hola mi loco " + str(estimate.margin_percent) )
+                estimate.margin_percent = margin_value / 100
             elif margin_type == 'amount':
                 margin_amt = margin_value
                 suggested = subtotal + margin_amt
+                # En el caso de que el margen sea un valor absoluto, se hace el cálculo para verlo
+                estimate.margin_percent = (
+                    ((margin_amt / subtotal * 100.0) / 100) if subtotal else 0.0
+                )
+
             elif margin_type == 'manual':
                 suggested = estimate.manual_sale_price
                 margin_amt = suggested - subtotal
+
+                estimate.margin_percent = (
+                    ((margin_amt / subtotal * 100.0)/100) if subtotal else 0.0
+                )
             else:
                 margin_amt = 0.0
                 suggested = subtotal
@@ -288,9 +303,11 @@ class PartyonEstimate(models.Model):
             estimate.suggested_sale_price = suggested
             estimate.sale_price = suggested
             estimate.margin_amount = margin_amt
-            estimate.margin_percent = (
-                (margin_amt / subtotal * 100.0) if subtotal else 0.0
-            )
+
+            # El porcentaje de margen cambiará en función de lo seleccionado.
+            # estimate.margin_percent = (
+            #     (margin_amt / subtotal * 100.0) if subtotal else 0.0
+            # )
 
     # -------------------------------------------------------------------------
     # CRUD
@@ -441,3 +458,16 @@ class PartyonEstimate(models.Model):
                 )
             rec.state = 'customer_approved'
 
+    # -------------------------------------------------------------------------
+    # APLICAR LA PLANTILLA AL PRESUPUESTO
+    # -------------------------------------------------------------------------
+
+    def action_apply_estimate(self):
+        for rec in self:
+            if rec.template_id:
+                rec.line_ids.unlink()  # TODO: Preguntar si es mejor hacer un False.
+                rec.line_ids = rec.template_id.partyon_estimate_lines_ids
+                # TODO: Pregutnar si se puede hacer así para que no pase referencia en memoria.
+
+            else:
+                raise UserError("Debe añadir una plantilla antes de pulsar el botón!")
