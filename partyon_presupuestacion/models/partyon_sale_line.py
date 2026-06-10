@@ -7,8 +7,11 @@ class PartyonSaleLine(models.Model):
 
     name = fields.Char(string='Nombre producto')
     product_id = fields.Many2one('product.product',string='Producto')
-    price = fields.Monetary(string='Price')
-    cost = fields.Monetary(string='Costo')
+    price = fields.Monetary(string='Price',store=True,currency_field='currency_id',)
+    cost = fields.Monetary(string='Costo',store=True,currency_field='currency_id',)
+    currency_id = fields.Many2one('res.currency',string='Currencia')
+
+
 
 
 
