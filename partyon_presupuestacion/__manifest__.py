@@ -29,10 +29,10 @@
         'views/partyon_estimate_template.xml',
         'views/menu_views.xml',
     ],
-    'demo': [
-        'demo/product.category.csv',
-        'demo/product.template.csv',
-    ],
+    # 'demo': [
+    #     'demo/product.category.csv',
+    #     'demo/product.template.csv',
+    # ],
     'installable': True,
     'application': True,
     'auto_install': False,
