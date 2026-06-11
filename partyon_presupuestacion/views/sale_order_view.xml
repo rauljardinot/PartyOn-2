@@ -9,7 +9,11 @@
             <field name="inherit_id" ref="sale.view_order_form"/>
             <field name="arch" type="xml">
 
-                <xpath expr="//notebook" position="inside">
+                <xpath expr="//field[@name='payment_term_id']" position="after">
+                    <field name="only_estimate_name" help="Selecciona esta opción si no quieres mandar todo el desglose de las lineas al cliente"/>
+                </xpath>
+
+                <xpath expr="//notebook/page[@name='order_lines']" position="after">
                     <page name="partyon_sale_lines" string="Lineas de cliente">
                         <field name="partyon_sale_line_ids">
                             <list>
@@ -24,6 +28,7 @@
 
                     </page>
                 </xpath>
+
 
             </field>
         </record>
