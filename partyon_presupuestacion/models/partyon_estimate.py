@@ -20,6 +20,11 @@ class PartyonEstimate(models.Model):
         readonly=True,
         default='New',
     )
+    estimate_name = fields.Char(
+        string='Nombre',
+        required=True,
+        copy=False,
+    )
     active = fields.Boolean(default=True)
     partner_id = fields.Many2one(
         'res.partner',
@@ -374,6 +379,7 @@ class PartyonEstimate(models.Model):
             )
 
         order_lines = []
+        client_lines = []
         for line in self.line_ids:
             product = line.product_id
             if not product:
@@ -389,6 +395,15 @@ class PartyonEstimate(models.Model):
                 'product_uom_id': line.uom_id.id if line.uom_id else False,
                 'price_unit': line.sale_price_unit,
             }))
+            client_lines.append((0, 0, {
+                'product_name': product.name if product else False,
+                'line_total': line.line_subtotal if line.line_subtotal else False,
+                'taxes_id': line.prouct.taxes_ids if line.product.taxes_ids else False,
+                'unit_price': line.product.price_unit, ###
+                'product_amount': line.product_uom_qty,
+            }))
+
+
 
         sale_order = self.env['sale.order'].create({
             'partner_id': self.partner_id.id,
@@ -396,6 +411,7 @@ class PartyonEstimate(models.Model):
             'company_id': self.company_id.id,
             'note': self.notes_customer,
             'order_line': order_lines,
+            'partyon_sale_line_ids': client_lines,
         })
 
         self.write({

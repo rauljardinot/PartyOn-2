@@ -8,4 +8,3 @@ class sale_order(models.Model):
     only_estimate_name = fields.Boolean(string='No pasar detalles')
     partyon_sale_line_ids = fields.One2many('partyon.sale.line', 'sale_order_id', string='Lineas de producto')
 
-
