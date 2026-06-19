@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <record id="action_partyon_reports_customer_lines" model="ir.actions.report">
-        <field name="name">Presupuesto prueba</field>
+        <field name="name">Presupuesto Líneas Cliente</field>
         <field name="model">sale.order</field>
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">partyon_reports.customer_lines_report_raw</field>
