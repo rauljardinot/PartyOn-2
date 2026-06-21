@@ -99,7 +99,7 @@
                                     <field name="product_id"/>
                                     <field name="name"/>
                                     <field name="quantity"/>
-                                    <field name="uom_id"/>
+                                    <field name="uom_id" domain="[('name', 'in', ['m²', 'cm²', 'Unidades'])]"/>
                                     <field name="width" optional="show"/>
                                     <field name="height" optional="show"/>
                                     <field name="depth" optional="hide"/>
