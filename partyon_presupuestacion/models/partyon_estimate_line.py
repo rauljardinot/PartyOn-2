@@ -223,7 +223,7 @@ class PartyonEstimateLine(models.Model):
         for line in self:
             line.area = line.width * line.height
 
-    @api.depends('width', 'height')
+    @api.depends('width', 'height','uom_id')
     def _compute_quantity(self):
         for line in self:
             if line.width and line.height:
