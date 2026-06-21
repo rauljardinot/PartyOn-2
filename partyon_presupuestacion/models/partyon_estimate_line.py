@@ -13,7 +13,8 @@ class PartyonEstimateLine(models.Model):
     estimate_id = fields.Many2one(
         'partyon.estimate',
         string='Presupuesto',
-        required=False, # TODO: Preguntar. Lo he hecho False ya que si hay lineas del Template no tienen por que pertenecer a un estimate.
+        required=False,
+        # TODO: Preguntar. Lo he hecho False ya que si hay lineas del Template no tienen por que pertenecer a un estimate.
         ondelete='cascade',
         index=True,
     )
@@ -40,7 +41,7 @@ class PartyonEstimateLine(models.Model):
         string='Material / Producto',
     )
     name = fields.Char(string='Descripción')
-    quantity = fields.Float(string='Cantidad', default=1.0)
+    quantity = fields.Float(string='Cantidad', default=1.0, compute='_compute_quantity')
     uom_id = fields.Many2one(
         'uom.uom',
         string='Unidad de medida',
@@ -51,7 +52,7 @@ class PartyonEstimateLine(models.Model):
     # -------------------------------------------------------------------------
     width = fields.Float(string='Ancho (cm)')
     height = fields.Float(string='Alto (cm)')
-    depth = fields.Float(string='Profundidad (cm)')
+    depth = fields.Float(string='Profundidad (cm)')  # TODO: Este campo puede valer pero para el corcho blanco solo.
     area = fields.Float(
         string='Área (cm²)',
         compute='_compute_area',
@@ -61,6 +62,7 @@ class PartyonEstimateLine(models.Model):
     # -------------------------------------------------------------------------
     # MATERIAL: USO PROPORCIONAL
     # -------------------------------------------------------------------------
+    # TODO: Esto realmente no tiene sentido ya que se va a añadir desde la compra.
     material_width = fields.Float(
         string='Ancho del material (cm)',
         help='Ancho total de la plancha o rollo de material.',
@@ -221,6 +223,19 @@ class PartyonEstimateLine(models.Model):
         for line in self:
             line.area = line.width * line.height
 
+    @api.depends('width', 'height')
+    def _compute_quantity(self):
+        for line in self:
+            if line.width and line.height:
+                if line.uom_id.name == 'm²':
+                    line.quantity = (line.width * line.height)/ 10000  # Para que nos den los m2
+                elif line.uom_id.name == 'cm²':
+                    line.quantity = line.width * line.height
+                else:
+                    line.quantity = 0
+            else:
+                line.quantity = 0
+
     @api.depends('material_width', 'material_height')
     def _compute_material_area(self):
         for line in self:
@@ -239,6 +254,13 @@ class PartyonEstimateLine(models.Model):
         for line in self:
             line.cost_waste = line.cost_material_unit * (line.waste_percent / 100.0)
 
+    """
+         TODO: Añadir los extras al precio unitario y después multiplicar por la cantidad. Reformularlo ya que 
+         los productos que lleguen a las lineas pueden ser tanto materiales como servicios (horas de trabajo) 
+         por lo que la linea ha de calcularlo de forma independiente, aunque puede ser válido el campo para sacar
+         métricas y datos a partir de ahi... 
+     """
+
     @api.depends(
         'quantity',
         'cost_material_unit', 'cost_waste',
@@ -253,37 +275,59 @@ class PartyonEstimateLine(models.Model):
     def _compute_subtotals(self):
         for line in self:
             qty = line.quantity
-
-            # Material: (coste unitario + desperdicio) × cantidad
+            # Cálculo de subtotales:
             line.subtotal_material = (line.cost_material_unit + line.cost_waste) * qty
-
-            # Operaciones: (máquina + electricidad) × cantidad
             line.subtotal_operation = (line.cost_machine + line.cost_electricity) * qty
-
-            # Mano de obra: labor unitario × qty + diseño + manipulación
+            line.subtotal_operation = (line.cost_machine + line.cost_electricity) * qty
             design_cost = line.cost_design_time * line.cost_design_rate
             handling_cost = line.cost_handling_time * line.cost_handling_rate
             line.subtotal_labor = (line.cost_labor_unit * qty) + design_cost + handling_cost
-
-            # Generales: pintura/acabado × cantidad
             line.subtotal_overhead = line.cost_painting * qty
-
-            # Envío
             line.subtotal_shipping = line.cost_shipping
-
-            # Extra
             line.subtotal_extra = line.cost_extra
 
-            # Total línea
-            line.line_subtotal = (
-                line.subtotal_material
-                + line.subtotal_operation
-                + line.subtotal_labor
-                + line.subtotal_overhead
-                + line.subtotal_shipping
-                + line.subtotal_extra
+            # Calcular el coste unitario real:
+            line.subtotal_material = (
+                    line.subtotal_material
+                    + line.subtotal_operation
+                    + line.subtotal_labor
+                    + line.subtotal_overhead
+                    + line.subtotal_shipping
+                    + line.subtotal_extra
             )
 
+            # # Material: (coste unitario + desperdicio) × cantidad
+            # line.subtotal_material = (line.cost_material_unit + line.cost_waste) * qty
+            #
+            # # Operaciones: (máquina + electricidad) × cantidad
+            # line.subtotal_operation = (line.cost_machine + line.cost_electricity) * qty
+            #
+            # # Mano de obra: labor unitario × qty + diseño + manipulación
+            # design_cost = line.cost_design_time * line.cost_design_rate
+            # handling_cost = line.cost_handling_time * line.cost_handling_rate
+            # line.subtotal_labor = (line.cost_labor_unit * qty) + design_cost + handling_cost
+            #
+            # # Generales: pintura/acabado × cantidad
+            # line.subtotal_overhead = line.cost_painting * qty
+            #
+            # # Envío
+            # line.subtotal_shipping = line.cost_shipping
+            #
+            # # Extra
+            # line.subtotal_extra = line.cost_extra
+            #
+            # # Total línea
+            # line.line_subtotal = (
+            #     line.subtotal_material
+            #     + line.subtotal_operation
+            #     + line.subtotal_labor
+            #     + line.subtotal_overhead
+            #     + line.subtotal_shipping
+            #     + line.subtotal_extra
+            # )
+
+
+    # Precio real de la linea con el veneficio.
     @api.depends(
         'line_subtotal', 'quantity',
         'line_margin_type', 'line_margin_value',
@@ -326,4 +370,4 @@ class PartyonEstimateLine(models.Model):
             self.name = self.product_id.display_name
             self.uom_id = self.product_id.uom_id
             self.cost_material_unit = self.product_id.standard_price
-
+            # TODO: Hacer esto mismo para los extras y añadirlos antes en el producto
