@@ -45,21 +45,9 @@
                                     <field name="height" optional="show"/>
                                     <field name="depth" optional="hide"/>
                                     <field name="area" optional="hide"/>
-                                    <field name="cost_material_unit"/>
-                                    <field name="waste_percent" optional="show"/>
-                                    <field name="cost_waste" optional="hide"/>
-                                    <field name="cost_electricity" optional="show"/>
-                                    <field name="cost_machine" optional="show"/>
-                                    <field name="cost_labor_unit" optional="show"/>
-                                    <field name="cost_design_time" optional="hide"/>
-                                    <field name="cost_design_rate" optional="hide"/>
-                                    <field name="cost_handling_time" optional="hide"/>
-                                    <field name="cost_handling_rate" optional="hide"/>
-                                    <field name="cost_painting" optional="show"/>
-                                    <field name="cost_shipping" optional="show"/>
-                                    <field name="cost_extra" optional="show"/>
+                                    <field name="cost_product_unit"/>
                                     <field name="line_subtotal" sum="Total"/>
-                                    <field name="sale_price_unit" optional="show"/>
+                                    <field name="cost_unit_real" optional="show"/>
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>

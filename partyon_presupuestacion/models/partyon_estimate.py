@@ -250,24 +250,16 @@ class PartyonEstimate(models.Model):
     # -------------------------------------------------------------------------
     # COMPUTED: TOTALES
     # -------------------------------------------------------------------------
-    @api.depends(
-        'line_ids.subtotal_material',
-        'line_ids.subtotal_operation',
-        'line_ids.subtotal_labor',
-        'line_ids.subtotal_overhead',
-        'line_ids.subtotal_shipping',
-        'line_ids.subtotal_extra',
-        'line_ids.line_subtotal',
-    )
+    @api.depends( 'line_ids.cost_unit_real', 'line_ids.line_subtotal')
     def _compute_totals(self):
         for estimate in self:
             lines = estimate.line_ids
-            estimate.total_material_cost = sum(lines.mapped('subtotal_material'))
-            estimate.total_operation_cost = sum(lines.mapped('subtotal_operation'))
-            estimate.total_labor_cost = sum(lines.mapped('subtotal_labor'))
-            estimate.total_overhead_cost = sum(lines.mapped('subtotal_overhead'))
-            estimate.total_shipping_cost = sum(lines.mapped('subtotal_shipping'))
-            estimate.total_extra_cost = sum(lines.mapped('subtotal_extra'))
+            estimate.total_material_cost = sum(lines.mapped('cost_unit_real'))
+            # estimate.total_operation_cost = sum(lines.mapped('subtotal_operation'))
+            # estimate.total_labor_cost = sum(lines.mapped('subtotal_labor'))
+            # estimate.total_overhead_cost = sum(lines.mapped('subtotal_overhead'))
+            # estimate.total_shipping_cost = sum(lines.mapped('subtotal_shipping'))
+            # estimate.total_extra_cost = sum(lines.mapped('subtotal_extra'))
             estimate.subtotal_cost = sum(lines.mapped('line_subtotal'))
 
     # -------------------------------------------------------------------------
