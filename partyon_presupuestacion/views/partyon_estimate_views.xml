@@ -101,12 +101,15 @@
                                     <field name="height" optional="show"/>
                                     <field name="name" optional="hide"/>
                                     <field name="quantity"/>
-                                    <field name="cost_unit_real" optional="show"/>
+<!--                                    <field name="cost_unit_real" optional="show"/>-->
+                                    <field name="cost_product_unit" optional="show"/>
+                                    <field name="lst_price" optional="show"/>
                                     <field name="uom_id" domain="[('name', 'in', ['m²', 'cm²', 'Unidades'])]"/>
                                     <field name="depth" optional="hide"/>
                                     <field name="area" optional="hide"/>
-                                    <field name="product_margin_percentage" optional="show"/>
-                                    <field name="line_subtotal" sum="Total"/>
+<!--                                    <field name="product_margin_percentage" optional="show"/>-->
+                                    <field name="line_subtotal" sum="Total" string="PVP"/>
+                                    <field name="line_cost_subtotal" sum="Total"/>
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>
