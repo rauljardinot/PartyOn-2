@@ -29,6 +29,7 @@
         'views/partyon_estimate_template.xml',
         'views/menu_views.xml',
         'views/sale_order_view.xml',
+        'views/product_template_views.xml'
     ],
     # 'demo': [
     #     'demo/product.category.csv',

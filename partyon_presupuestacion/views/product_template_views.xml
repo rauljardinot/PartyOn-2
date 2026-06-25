@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inherit Form View to Modify it -->
+    <record id="party_on_product_template_form" model="ir.ui.view">
+        <field name="name">party.on.product.template.form</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//label[@for='standard_price']" position="before">
+                <label for="margin_percentage" string="Margen (%)"/>
+                <div class="d-flex align-items-center">
+                    <field name="margin_percentage" class="w-auto me-2" style="max-width: 100px;"/>
+                    <button name="action_apply_margin"
+                            class="btn-secondary ms-2"
+                            type="object"
+                            string="Aplicar Margen"
+                            confirm="¿Está seguro de que quiere aplicar el margen?"/>
+                </div>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>
