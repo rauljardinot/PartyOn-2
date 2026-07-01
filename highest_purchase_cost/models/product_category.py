@@ -8,7 +8,7 @@ class ProductCategory(models.Model):
 
     property_cost_method = fields.Selection(
         selection_add=[
-            ('highest_purchase', 'Mayor precio de compra'),
+            ('highest_purchase', 'Highest Purchase Price'),
         ],
         ondelete={'highest_purchase': 'set default'},
     )
