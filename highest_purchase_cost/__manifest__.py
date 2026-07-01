@@ -10,6 +10,9 @@
     """,
     'author': 'Raul Rolando Jardinot Gonzalez, Jose Carlos Luque Castro',
     'maintainer': 'Raul Rolando Jardinot Gonzalez',
+    'support': 'rauljardinot@gmail.com',
+    'price': 5.99,
+    'currency': 'USD',
     'license': 'LGPL-3',
     'depends': [
         'stock_account',
