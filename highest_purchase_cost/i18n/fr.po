@@ -1,0 +1,47 @@
+# Translation of Odoo Server.
+# This file contains the translation of the following modules:
+# 	* highest_purchase_cost
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: Odoo Server 19.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-07-01 00:00+0000\n"
+"PO-Revision-Date: 2026-07-01 00:00+0000\n"
+"Last-Translator: Raul Rolando Jardinot Gonzalez\n"
+"Language-Team: French\n"
+"Language: fr\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: \n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#. module: highest_purchase_cost
+#: model:ir.module.module,description:highest_purchase_cost.module_meta_information
+msgid ""
+"\n"
+"        Adds an inventory costing method that keeps the product cost at the\n"
+"        highest unit purchase price received in validated incoming stock moves.\n"
+"    "
+msgstr ""
+"\n"
+"        Ajoute une méthode de valorisation des stocks qui maintient le coût du produit au\n"
+"        prix d'achat unitaire le plus élevé reçu dans les mouvements d'entrée validés.\n"
+"    "
+
+#. module: highest_purchase_cost
+#: model:ir.module.module,shortdesc:highest_purchase_cost.module_meta_information
+msgid "Highest Purchase Cost"
+msgstr "Coût d'achat le plus élevé"
+
+#. module: highest_purchase_cost
+#: model:ir.module.module,summary:highest_purchase_cost.module_meta_information
+msgid "Inventory costing based on the highest purchase price"
+msgstr "Valorisation des stocks basée sur le prix d'achat le plus élevé"
+
+#. module: highest_purchase_cost
+#: model:ir.model.fields.selection,name:highest_purchase_cost.selection__product_category__property_cost_method__highest_purchase
+#: model:ir.model.fields.selection,name:highest_purchase_cost.selection__product_template__cost_method__highest_purchase
+#: model:ir.model.fields.selection,name:highest_purchase_cost.selection__res_company__cost_method__highest_purchase
+msgid "Highest Purchase Price"
+msgstr "Prix d'achat le plus élevé"

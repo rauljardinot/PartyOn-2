@@ -8,7 +8,7 @@ class ProductTemplate(models.Model):
 
     cost_method = fields.Selection(
         selection_add=[
-            ('highest_purchase', 'Mayor precio de compra'),
+            ('highest_purchase', 'Highest Purchase Price'),
         ],
     )
 
