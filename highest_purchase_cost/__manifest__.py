@@ -19,5 +19,5 @@
     'installable': True,
     'application': False,
     'auto_install': False,
-    'icon': 'static/description/icon.png',
+    'icon': '/highest_purchase_cost/static/description/icon.png',
 }
