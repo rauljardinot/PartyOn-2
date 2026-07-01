@@ -3,6 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/PartyOn-2.iml" filepath="$PROJECT_DIR$/.idea/PartyOn-2.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/web_chatter_position.iml" filepath="$PROJECT_DIR$/.idea/web_chatter_position.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/web_responsive.iml" filepath="$PROJECT_DIR$/.idea/web_responsive.iml" />
     </modules>
   </component>
 </project>
