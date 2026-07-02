@@ -8,7 +8,7 @@
         Adds an inventory costing method that keeps the product cost at the
         highest unit purchase price received in validated incoming stock moves.
     """,
-    'author': 'Raul Rolando Jardinot Gonzalez, Jose Carlos Luque Castro',
+    'author': 'Raul Rolando Jardinot Gonzalez, Jose Carlos Luque Castro',   
     'maintainer': 'Raul Rolando Jardinot Gonzalez',
     'support': 'rauljardinot@gmail.com',
     'price': 5.99,
