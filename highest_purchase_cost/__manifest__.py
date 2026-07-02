@@ -8,7 +8,7 @@
         Adds an inventory costing method that keeps the product cost at the
         highest unit purchase price received in validated incoming stock moves.
     """,
-    'author': 'Raul Rolando Jardinot Gonzalez, Jose Carlos Luque Castro',   
+    'author': 'Raul Rolando Jardinot Gonzalez, Jose Carlos Luque Castro',
     'maintainer': 'Raul Rolando Jardinot Gonzalez',
     'support': 'rauljardinot@gmail.com',
     'price': 5.99,
@@ -16,10 +16,11 @@
     'license': 'LGPL-3',
     'depends': [
         'stock_account',
-        'purchase_stock',
+        'purchase_stock',x
     ],
     'installable': True,
     'application': False,
     'auto_install': False,
     'icon': '/highest_purchase_cost/static/description/icon.png',
+    'images': ['images/inventario-categorias.png'],
 }
