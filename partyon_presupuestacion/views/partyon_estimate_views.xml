@@ -318,6 +318,7 @@
                 <group>
                     <filter string="Estado" name="group_state" context="{'group_by': 'state'}"/>
                     <filter string="Cliente" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="Categoría" name="group_category" context="{'group_by': 'estimate_category_id'}"/>
                     <filter string="Responsable" name="group_user" context="{'group_by': 'user_id'}"/>
                     <filter string="Fecha" name="group_date" context="{'group_by': 'date:month'}"/>
                     <filter string="Compañía" name="group_company" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
