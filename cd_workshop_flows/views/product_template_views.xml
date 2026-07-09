@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Inherit Form View to Modify it -->
+    <record id="party_on_product_template_form" model="ir.ui.view">
+        <field name="name">party.on.product.template.form</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+
+            <!--            <xpath expr="//div[@name='list_price_uom']" position="after">-->
+            <!--                <label for="margin_percentage" string="Margen (%)" invisible="not company_id.calculate_margin_button"/>-->
+            <!--                <div class="d-flex align-items-center">-->
+            <!--                    <field name="margin_percentage" class="w-auto me-2" style="max-width: 100px;" invisible="not company_id.calculate_margin_button"/>-->
+            <!--                    <button name="action_apply_margin"-->
+            <!--                            class="btn-secondary ms-2"-->
+            <!--                            type="object"-->
+            <!--                            string="Aplicar Margen"-->
+            <!--                            confirm="¿Está seguro de que quiere aplicar el margen?"-->
+            <!--                            invisible="not company_id.calculate_margin_button"-->
+            <!--                    />-->
+            <!--                </div>-->
+            <!--            </xpath>-->
+
+            <xpath expr="//field[@name='uom_id']" position="after">
+                <label for="margin_percentage" string="Margen (%)" invisible="not company_id.calculate_margin_button"/>
+                <field name="margin_percentage" class="w-auto me-2" style="max-width: 50px;"
+                       invisible="not company_id.calculate_margin_button"/>
+                <button name="action_apply_margin"
+                        class="btn-secondary ms-2"
+                        type="object"
+                        string="Añadir"
+                        confirm="¿Está seguro de que quiere aplicar el margen?"
+                        invisible="not company_id.calculate_margin_button"
+                />
+            </xpath>
+
+            <xpath expr="//field[@name='uom_id']" position="attributes">
+                <attribute name="style">max-width:60px</attribute>
+            </xpath>
+
+            <xpath expr="//field[@name='list_price']" position="attributes">
+                <attribute name="style">max-width:80px</attribute>
+            </xpath>
+
+        </field>
+    </record>
+</odoo>

@@ -7,3 +7,4 @@ access_partyon_estimate_template_user,partyon.estimate.template.user,model_party
 access_partyon_estimate_template_manager,partyon.estimate.template.manager,model_partyon_estimate_template,group_partyon_manager,1,1,1,1
 access_partyon_estimate_sale_line,access.partyon.estimate.sale.line,model_partyon_sale_line,group_partyon_manager,1,1,1,1
 access_partyon_estimate_sale_order,access.partyon.estimate.sale.order,model_sale_order,group_partyon_manager,1,1,1,1
+access_partyon_estimate_category,access.partyon.estimate.category,model_estimate_category,group_partyon_manager,1,1,1,1

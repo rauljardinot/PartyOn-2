@@ -246,6 +246,10 @@ class PartyonEstimate(models.Model):
 
     #  Template
     template_id = fields.Many2one('partyon.estimate.template', string='Plantilla de presupuesto')
+    estimate_category_id = fields.Many2one(
+        'estimate.category',
+        string="Categoría"
+    )
 
     # -------------------------------------------------------------------------
     # COMPUTED: TOTALES

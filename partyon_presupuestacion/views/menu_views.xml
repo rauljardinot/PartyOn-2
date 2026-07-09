@@ -23,8 +23,14 @@
     <menuitem id="partyon_menu_config"
               name="Configuración"
               parent="partyon_menu_root"
-              groups="group_partyon_manager"
               sequence="90"/>
+
+    <!-- Menu de configuración. -->
+    <menuitem id="partyon_menu_config_estimate_categ"
+              name="Categorías"
+              parent="partyon_menu_config"
+              action="partyon_presupuestacion_estimate_category_action"
+              sequence="10"/>
 
     <menuitem id="partyon_menu_estimates_templates"
               name="Plantillas"

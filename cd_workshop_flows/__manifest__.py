@@ -17,13 +17,15 @@ as any business that needs to handle custom work.
     'version': '0.1',
 
     # any module necessary for this one to work correctly
-    'depends': ['base', 'purchase'],
+    'depends': ['base', 'purchase', 'stock'],
 
     'data': [
         'security/ir.model.access.csv',
         'views/purchase_order_view.xml',
         'wizards/custom_board_wizard_view.xml',
         'views/board_format_view.xml',
+        'views/product_template_views.xml',
+        'views/res_config_settings.xml',
     ],
 }
 

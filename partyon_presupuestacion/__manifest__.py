@@ -27,9 +27,9 @@
         'data/sequence_data.xml',
         'views/partyon_estimate_views.xml',
         'views/partyon_estimate_template.xml',
-        'views/menu_views.xml',
         'views/sale_order_view.xml',
-        'views/product_template_views.xml'
+        'views/estimate_category_views.xml',
+        'views/menu_views.xml',
     ],
     # 'demo': [
     #     'demo/product.category.csv',
