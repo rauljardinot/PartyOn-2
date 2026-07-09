@@ -16,10 +16,11 @@
     'license': 'LGPL-3',
     'depends': [
         'stock_account',
-        'purchase_stock',
+        'purchase_stock',x
     ],
     'installable': True,
     'application': False,
     'auto_install': False,
-    'icon': '/highest_purchase_cost/static/description/icon_2.png',
+    'icon': '/highest_purchase_cost/static/description/icon.png',
+    'images': ['images/inventario-categorias.png'],
 }
