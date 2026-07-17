@@ -21,12 +21,12 @@
                 </form>
             </field>
         </record>
-        <act_window id="action_invoice_digitalize"
-                    name="Digitize Invoice"
-                    res_model="invoice.digitalize"
-                    view_mode="form"
-                    view_id="view_invoice_digitalize_form"
-                    target="new"
-        />
+        <record id="action_invoice_digitalize" model="ir.actions.act_window">
+            <field name="name">Digitize Invoice</field>
+            <field name="res_model">invoice.digitalize</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="view_invoice_digitalize_form"/>
+            <field name="target">new</field>
+        </record>
     </data>
 </odoo>
