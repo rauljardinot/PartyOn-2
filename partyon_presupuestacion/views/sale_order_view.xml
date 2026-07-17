@@ -9,7 +9,8 @@
             <field name="arch" type="xml">
 
                 <xpath expr="//field[@name='payment_term_id']" position="after">
-                    <field name="only_estimate_name" help="Selecciona esta opción si no quieres mandar todo el desglose de las lineas al cliente"/>
+                    <field name="only_estimate_name"
+                           help="Selecciona esta opción si no quieres mandar todo el desglose de las lineas al cliente"/>
                 </xpath>
 
                 <xpath expr="//notebook/page[@name='order_lines']" position="after">
@@ -17,7 +18,7 @@
                         <field name="partyon_sale_line_ids">
                             <list editable="bottom">
                                 <field name="product_name"/>
-                                <field name="taxes_id" widget="many2many_tags"/>
+                                <field name="taxes_id" widget="many2many_tags" optional="hide"/>
                                 <field name="product_amount"/>
                                 <field name="unit_price"/>
                                 <field name="sale_order_id" column_invisible="True"/>
@@ -25,6 +26,17 @@
                                 <field name="line_total"/>
                             </list>
                         </field>
+                        <group name="note_group_client" col="6" class="mt-2 mt-md-0">
+                            <group colspan="4" class="order-1 order-lg-0">
+                                <field colspan="2" name="sale_line_notes" nolabel="1" placeholder="Observaciones del presupuesto..."/>
+                            </group>
+<!--                             Ver esta parte si se llama tal cual. -->
+                            <group class="oe_subtotal_footer d-flex order-0 order-lg-1 flex-column gap-0 gap-sm-3"
+                                   colspan="2" name="sale_total">
+                                <field name="tax_totals" widget="account-tax-totals-field" nolabel="1" readonly="1"/>
+                            </group>
+                        </group>
+
 
                     </page>
                 </xpath>

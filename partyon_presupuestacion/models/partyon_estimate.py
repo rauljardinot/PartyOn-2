@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
+from passlib.crypto.scrypt import estimate_maxmem
 
 
 class PartyonEstimate(models.Model):
@@ -373,6 +374,7 @@ class PartyonEstimate(models.Model):
             raise UserError(
                 _('Ya existe un pedido de venta vinculado: %s') % self.sale_order_id.name
             )
+        subtotal_products = 0
 
         order_lines = []
         client_lines = []
@@ -389,17 +391,27 @@ class PartyonEstimate(models.Model):
                 'name': line.name or (product.display_name if product else 'Línea de presupuesto'),
                 'product_uom_qty': line.quantity,
                 'product_uom_id': line.uom_id.id if line.uom_id else False,
-                'price_unit': line.sale_price_unit,
-            }))
-            client_lines.append((0, 0, {
-                'product_name': product.name if product else False,
-                'line_total': line.line_subtotal if line.line_subtotal else False,
-                'taxes_id': line.prouct.taxes_ids if line.product.taxes_ids else False,
-                'unit_price': line.product.price_unit, ###
-                'product_amount': line.product_uom_qty,
+                'price_unit': line.cost_product_unit,
             }))
 
+            # Hago aquí el sumatorio de los costes para pasarlo a la linea
+            subtotal_products += line.line_cost_subtotal
 
+            # TODO: Se me ocurre pasarle solo una linea, con el nombre el total, ya después e podrá arreglar.
+            # client_lines.append((0, 0, {
+            #     'product_name': product.name if product else False,
+            #     'line_total': line.line_subtotal if line.line_subtotal else False,
+            #     'taxes_id': line.prouct.taxes_ids if line.product.taxes_ids else False,
+            #     'unit_price': line.product.price_unit, ###
+            #     'product_amount': line.product_uom_qty,
+            # }))
+
+        client_lines.append((0, 0, {
+            'product_name': self.estimate_name if self.estimate_name else 'Presupuesto de producto',
+            'line_total': subtotal_products if subtotal_products > 0  else 0,
+            'unit_price': subtotal_products if subtotal_products > 0  else 0,
+            'product_amount': 1,
+        }))
 
         sale_order = self.env['sale.order'].create({
             'partner_id': self.partner_id.id,
