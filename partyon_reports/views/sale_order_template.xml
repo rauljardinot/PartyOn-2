@@ -60,8 +60,8 @@
                 <t t-set="is_proforma" t-value="env.context.get('proforma', False) or is_pro_forma"/>
                 <t t-set="layout_document_title">
                     <span t-if="is_proforma">Pro-Forma Invoice #</span>
-                    <span t-elif="doc.state in ['draft','sent']">Quotation #</span>
-                    <span t-else="">Order #</span>
+                    <span t-elif="doc.state in ['draft','sent']">Presupuesto #</span>
+                    <span t-else="">Orden #</span>
                     <span t-field="doc.name">SO0000</span>
                 </t>
 
@@ -71,19 +71,19 @@
                         <div t-field="doc.client_order_ref">SO0000</div>
                     </div>
                     <div t-if="doc.date_order" class="col" name="informations_date">
-                        <strong t-if="is_proforma">Issued Date</strong>
-                        <strong t-elif="doc.state in ['draft', 'sent']">Quotation Date</strong>
-                        <strong t-else="">Order Date</strong>
+                        <strong t-if="is_proforma">Fecha de emisión</strong>
+                        <strong t-elif="doc.state in ['draft', 'sent']">Fecha</strong>
+                        <strong t-else="">Fecha</strong>
                         <div t-field="doc.date_order" t-options='{"widget": "date"}'>2023-12-31</div>
                     </div>
                     <div t-if="doc.validity_date and doc.state in ['draft', 'sent']"
                          class="col"
                          name="expiration_date">
-                        <strong>Expiration</strong>
+                        <strong>Vencimiento</strong>
                         <div t-field="doc.validity_date">2023-12-31</div>
                     </div>
                     <div t-if="doc.commitment_date" class="col" name="delivery_date">
-                        <strong>Delivery Date</strong>
+                        <strong>Fecha de Entrega</strong>
                         <div
                                 t-field="doc.commitment_date"
                                 t-options="{'widget': 'date'}"
@@ -92,7 +92,7 @@
                         </div>
                     </div>
                     <div t-if="doc.user_id.name" class="col">
-                        <strong>Salesperson</strong>
+                        <strong>Comercial</strong>
                         <div t-field="doc.user_id">Mitchell Admin</div>
                     </div>
                 </div>
