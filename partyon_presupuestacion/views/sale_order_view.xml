@@ -15,16 +15,14 @@
                 <xpath expr="//notebook/page[@name='order_lines']" position="after">
                     <page name="partyon_sale_lines" string="Lineas de cliente">
                         <field name="partyon_sale_line_ids">
-                            <list>
+                            <list editable="bottom">
                                 <field name="product_name"/>
-<!--                                <field name="price"/>-->
-<!--                                <field name="cost"/>-->
-                                <field name="line_total"/>
                                 <field name="taxes_id" widget="many2many_tags"/>
                                 <field name="product_amount"/>
                                 <field name="unit_price"/>
-                                <field name="sale_order_id" column_invisible="True" invisible="True"/>
-                                <field name="currency_id" column_invisible="True"  invisible="True"/>
+                                <field name="sale_order_id" column_invisible="True"/>
+                                <field name="currency_id" column_invisible="True"/>
+                                <field name="line_total"/>
                             </list>
                         </field>
 

@@ -11,7 +11,7 @@ class PartyonSaleLine(models.Model):
     product_name = fields.Char(string='Nombre producto')
     price = fields.Monetary(string='Precio',store=True,currency_field='currency_id',)
     cost = fields.Monetary(string='Costo',store=True,currency_field='currency_id',)
-    currency_id = fields.Many2one('res.currency',string='Currencia')
+    currency_id = fields.Many2one('res.currency',string='Moneda', default=lambda self: self.env.company.currency_id)
     sale_order_id = fields.Many2one('sale.order',string='Presupuesto')
     unit_price = fields.Monetary(string='Precio unidad')
     product_amount = fields.Integer(string='Cantidad')
