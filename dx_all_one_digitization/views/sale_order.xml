@@ -1,0 +1,44 @@
+<odoo>
+    <data>
+        <!-- Action to open digitization wizard without record -->
+        <record id="action_digitalize_sale_order_wizard" model="ir.actions.act_window">
+            <field name="name">Digitalize Sale Order</field>
+            <field name="res_model">sale.digitalize</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="view_sale_digitalize_form"/>
+            <field name="target">new</field>
+        </record>
+
+        <!-- Form view button -->
+        <record model="ir.ui.view" id="view_sale_order_form_inherit">
+            <field name="name">sale.order.form.inherit</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.view_order_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//button[@name='action_confirm']" position="after">
+                    <button string="Digitize Sale Order" type="object" class="oe_highlight"
+                            name="action_show_digitalize_wizard"/>
+                </xpath>
+            </field>
+        </record>
+
+        <!-- Tree view with control panel button -->
+        <record model="ir.ui.view" id="view_sale_order_tree_inherit">
+            <field name="name">sale.order.tree.inherit</field>
+            <field name="model">sale.order</field>
+            <field name="inherit_id" ref="sale.sale_order_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//list" position="inside">
+                    <header>
+                        <button name="%(action_digitalize_sale_order_wizard)d" 
+                                string="Digitize Sale Order" 
+                                type="action" 
+                                class="btn-primary"
+                                display="always"/>
+                    </header>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>
