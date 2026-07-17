@@ -1,0 +1,26 @@
+<!-- views/invoice_digitalize.xml -->
+<odoo>
+    <data>
+        <record id="view_purchase_digitalize_form" model="ir.ui.view">
+            <field name="name">purchase.digitalize.form</field>
+            <field name="model">purchase.digitalize</field>
+            <field name="arch" type="xml">
+                <form>
+                    <group>
+                        <field name="file" widget="binary" filename="filename"/>
+                         <field name="filename" invisible="1"/>
+                        <field name="create_partner"/>
+                        <field name="create_product"/>
+                        <field name="currency_id"/>
+                        <field name="match_product"/>
+                    </group>
+                    <footer>
+                        <button string="Accept" type="object" class="oe_highlight" name="action_accept"/>
+                        <button string="Cancel" class="oe_link" special="cancel" />
+                    </footer>
+                </form>
+            </field>
+        </record>
+        
+    </data>
+</odoo>

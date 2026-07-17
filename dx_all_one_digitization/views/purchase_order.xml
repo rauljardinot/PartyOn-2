@@ -1,0 +1,43 @@
+<odoo>
+    <data>
+        <!-- Action to open digitization wizard without record -->
+        <record id="action_digitalize_purchase_order_wizard" model="ir.actions.act_window">
+            <field name="name">Digitalize Purchase Order</field>
+            <field name="res_model">purchase.digitalize</field>
+            <field name="view_mode">form</field>
+            <field name="view_id" ref="view_purchase_digitalize_form"/>
+            <field name="target">new</field>
+        </record>
+
+        <!-- Form view button -->
+        <record model="ir.ui.view" id="view_purchase_order_form_inherit">
+            <field name="name">purchase.order.form.inherit</field>
+            <field name="model">purchase.order</field>
+            <field name="inherit_id" ref="purchase.purchase_order_form"/>
+            <field name="arch" type="xml">
+                   <xpath expr="//button[@name='button_confirm']" position="after">
+                         <button string="Digitize Sale Order" type="object" class="oe_highlight" name="action_show_digitalize_wizard"/>
+                    </xpath>
+            </field>
+        </record>
+
+        <!-- Tree view with control panel button -->
+        <record model="ir.ui.view" id="view_purchase_order_tree_inherit">
+            <field name="name">purchase.order.tree.inherit</field>
+            <field name="model">purchase.order</field>
+            <field name="inherit_id" ref="purchase.purchase_order_tree"/>
+            <field name="arch" type="xml">
+                <xpath expr="//list" position="inside">
+                    <header>
+                        <button name="%(action_digitalize_purchase_order_wizard)d" 
+                                string="Digitize Purchase Order" 
+                                type="action" 
+                                class="btn-primary"
+                                display="always"/>
+                    </header>
+                </xpath>
+            </field>
+        </record>
+
+    </data>
+</odoo>
