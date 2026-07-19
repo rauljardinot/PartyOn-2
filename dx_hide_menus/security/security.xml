@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <data noupdate="0">
+
+        <record id="dx_permissions" model="ir.module.category">
+            <field name="name">Visibilidad a Menus Básicos</field>
+            <field name="sequence">1</field>
+        </record>
+
+        <record id="hide_conversations" model="res.groups">
+            <field name="name">Ver Conversaciones</field>
+            <field name="category_id" ref="dx_hide_menus.dx_permissions"/>
+        </record>
+
+        <record id="hide_contacts" model="res.groups">
+            <field name="name">Ver Contactos</field>
+            <field name="category_id" ref="dx_hide_menus.dx_permissions"/>
+        </record>
+
+        <record id="hide_sale" model="res.groups">
+            <field name="name">Ver Ventas</field>
+            <field name="category_id" ref="dx_hide_menus.dx_permissions"/>
+        </record>
+
+        <record id="hide_employees" model="res.groups">
+            <field name="name">Ver Empleados</field>
+            <field name="category_id" ref="dx_hide_menus.dx_permissions"/>
+        </record>
+
+        <record id="hide_activity" model="res.groups">
+            <field name="name">Ver Actividades</field>
+            <field name="category_id" ref="dx_hide_menus.dx_permissions"/>
+        </record>
+
+        <record id="hide_calendar" model="res.groups">
+            <field name="name">Ver Calendario</field>
+            <field name="category_id" ref="dx_hide_menus.dx_permissions"/>
+        </record>
+
+        <record id="hide_dashboard" model="res.groups">
+            <field name="name">Ver Tablero</field>
+            <field name="category_id" ref="dx_hide_menus.dx_permissions"/>
+        </record>
+
+        <record id="hide_bi_generic_import" model="res.groups">
+            <field name="name">Ver Importación Genérica</field>
+            <field name="category_id" ref="dx_hide_menus.dx_permissions"/>
+        </record>
+
+        <record id="hide_messages" model="res.groups">
+            <field name="name">Ver Mensajes</field>
+            <field name="category_id" ref="dx_hide_menus.dx_permissions"/>
+        </record>
+
+    </data>
+
+
+</odoo>

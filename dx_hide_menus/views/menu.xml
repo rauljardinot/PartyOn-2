@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+	<data noupdate="0">
+
+		<record id="contacts.menu_contacts" model="ir.ui.menu">
+			<field name="groups_id" eval="[(6, 0, [ref('dx_hide_menus.hide_contacts')]),(4, ref('base.group_system'))]"/>
+		</record>
+
+		<record id="mail.menu_root_discuss" model="ir.ui.menu">
+			<field name="groups_id" eval="[(6, 0, [ref('dx_hide_menus.hide_conversations')]),(4, ref('base.group_system'))]"/>
+		</record>
+
+        <record id="sale.sale_menu_root" model="ir.ui.menu">
+            <field name="groups_id"  eval="[(6, 0, [ref('dx_hide_menus.hide_sale')]), (4, ref('base.group_system'))]"/>
+        </record>
+
+        <record id="hr.menu_hr_root" model="ir.ui.menu">
+            <field name="groups_id"  eval="[(6, 0, [ref('dx_hide_menus.hide_employees')]),(4, ref('base.group_system'))]"/>
+        </record>
+
+        <record id="rt_activity_mgmt.mail_activity_menu" model="ir.ui.menu">
+            <field name="groups_id"  eval="[(6, 0, [ref('dx_hide_menus.hide_activity')]),(4, ref('base.group_system'))]"/>
+        </record>
+
+        <record id="calendar.mail_menu_calendar" model="ir.ui.menu">
+            <field name="groups_id"  eval="[(6, 0, [ref('dx_hide_menus.hide_calendar')]),(4, ref('base.group_system'))]"/>
+        </record>
+
+        <record id="base.menu_board_root" model="ir.ui.menu">
+            <field name="groups_id"  eval="[(6, 0, [ref('dx_hide_menus.hide_dashboard')]), (4, ref('base.group_system'))]"/>
+        </record>
+
+        <record id="bi_generic_import.menu_import_root" model="ir.ui.menu">
+            <field name="groups_id"  eval="[(6, 0, [ref('dx_hide_menus.hide_bi_generic_import')]), (4, ref('base.group_system'))]"/>
+        </record>
+
+        <record id="prt_mail_messages.prt_messages_root" model="ir.ui.menu">
+            <field name="groups_id"  eval="[(6, 0, [ref('dx_hide_menus.hide_messages')]), (4, ref('base.group_system'))]"/>
+        </record>
+
+	</data>
+</odoo>
