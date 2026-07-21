@@ -15,8 +15,8 @@ LINE_TYPES = [
 
 CALCULATION_METHODS = [
     ('manual', 'Cantidad manual'),
-    ('area', 'Área (m²)'),
-    ('volume', 'Volumen (m³)'),
+    ('area', 'Área'),
+    ('volume', 'Volumen'),
     ('hours', 'Horas'),
 ]
 
@@ -56,9 +56,15 @@ class PartyonEstimateCostMixin(models.AbstractModel):
         default=1.0,
         digits='Product Unit of Measure',
     )
-    width = fields.Float(string='Ancho (cm)')
-    height = fields.Float(string='Alto (cm)')
-    depth = fields.Float(string='Profundidad (cm)')
+    dimension_uom_id = fields.Many2one(
+        'uom.uom',
+        string='Unidad de las medidas',
+        default=lambda self: self.env.ref('uom.product_uom_cm'),
+        help='Unidad utilizada para ancho, largo y profundidad.',
+    )
+    width = fields.Float(string='Ancho')
+    height = fields.Float(string='Largo')
+    depth = fields.Float(string='Profundidad')
     hours = fields.Float(string='Horas')
     waste_percent = fields.Float(
         string='Merma (%)',
@@ -71,10 +77,11 @@ class PartyonEstimateCostMixin(models.AbstractModel):
         digits='Product Unit of Measure',
     )
     uom_id = fields.Many2one('uom.uom', string='Unidad de medida')
-    cost_unit = fields.Monetary(
+    cost_unit = fields.Float(
         string='Coste unitario',
         required=True,
-        currency_field='currency_id',
+        min_display_digits='Product Price',
+        help='Coste por cada unidad de consumo seleccionada.',
     )
     cost_subtotal = fields.Monetary(
         string='Coste total',
@@ -83,22 +90,82 @@ class PartyonEstimateCostMixin(models.AbstractModel):
         currency_field='currency_id',
     )
 
+    def _get_calculation_reference_uom(self):
+        self.ensure_one()
+        xml_ids = {
+            'area': 'uom.product_uom_square_meter',
+            'volume': 'uom.product_uom_cubic_meter',
+            'hours': 'uom.product_uom_hour',
+        }
+        return self.env.ref(xml_ids[self.calculation_method])
+
+    def _get_calculation_method_from_uom(self, uom):
+        if not uom:
+            return 'manual'
+        references = [
+            ('area', self.env.ref('uom.product_uom_square_meter')),
+            ('volume', self.env.ref('uom.product_uom_cubic_meter')),
+            ('hours', self.env.ref('uom.product_uom_hour')),
+        ]
+        return next(
+            (method for method, reference in references if uom._has_common_reference(reference)),
+            'manual',
+        )
+
+    def _get_dimension_uom_from_product_uom(self, product_uom):
+        square_foot = self.env.ref('uom.product_uom_square_foot')
+        cubic_foot = self.env.ref('uom.product_uom_cubic_foot')
+        if product_uom in (square_foot, cubic_foot):
+            return self.env.ref('uom.product_uom_foot')
+        return self.env.ref('uom.product_uom_meter')
+
+    def _dimensions_in_meters(self):
+        self.ensure_one()
+        dimension_uom = self.dimension_uom_id or self.env.ref('uom.product_uom_cm')
+        meter = self.env.ref('uom.product_uom_meter')
+        if not dimension_uom._has_common_reference(meter):
+            return 0.0, 0.0, 0.0
+        return (
+            dimension_uom._compute_quantity(self.width, meter, round=False),
+            dimension_uom._compute_quantity(self.height, meter, round=False),
+            dimension_uom._compute_quantity(self.depth, meter, round=False),
+        )
+
     @api.depends(
         'calculation_method', 'manual_quantity', 'pieces', 'width', 'height',
-        'depth', 'hours', 'waste_percent',
+        'depth', 'hours', 'waste_percent', 'dimension_uom_id',
+        'dimension_uom_id.factor', 'uom_id', 'uom_id.factor',
     )
     def _compute_quantity(self):
         for line in self:
             factor = 1.0 + (line.waste_percent / 100.0)
             pieces = line.pieces or 0.0
             if line.calculation_method == 'area':
-                base_quantity = line.width * line.height / 10_000.0 * pieces
-                line.quantity = base_quantity * factor
+                width, height, _depth = line._dimensions_in_meters()
+                base_quantity = width * height * pieces * factor
+                reference_uom = line._get_calculation_reference_uom()
+                line.quantity = (
+                    reference_uom._compute_quantity(base_quantity, line.uom_id, round=False)
+                    if line.uom_id and reference_uom._has_common_reference(line.uom_id)
+                    else base_quantity
+                )
             elif line.calculation_method == 'volume':
-                base_quantity = line.width * line.height * line.depth / 1_000_000.0 * pieces
-                line.quantity = base_quantity * factor
+                width, height, depth = line._dimensions_in_meters()
+                base_quantity = width * height * depth * pieces * factor
+                reference_uom = line._get_calculation_reference_uom()
+                line.quantity = (
+                    reference_uom._compute_quantity(base_quantity, line.uom_id, round=False)
+                    if line.uom_id and reference_uom._has_common_reference(line.uom_id)
+                    else base_quantity
+                )
             elif line.calculation_method == 'hours':
-                line.quantity = line.hours * pieces
+                base_quantity = line.hours * pieces
+                reference_uom = line._get_calculation_reference_uom()
+                line.quantity = (
+                    reference_uom._compute_quantity(base_quantity, line.uom_id, round=False)
+                    if line.uom_id and reference_uom._has_common_reference(line.uom_id)
+                    else base_quantity
+                )
             else:
                 line.quantity = line.manual_quantity
 
@@ -115,10 +182,33 @@ class PartyonEstimateCostMixin(models.AbstractModel):
             line.name = line.product_id.display_name
             line.uom_id = line.product_id.uom_id
             line.cost_unit = line.product_id.standard_price
+            line.calculation_method = line._get_calculation_method_from_uom(line.product_id.uom_id)
+            if line.calculation_method in ('area', 'volume'):
+                line.dimension_uom_id = line._get_dimension_uom_from_product_uom(
+                    line.product_id.uom_id
+                )
+
+    @api.onchange('calculation_method')
+    def _onchange_calculation_method(self):
+        for line in self:
+            if line.calculation_method == 'manual':
+                if line.product_id:
+                    line.uom_id = line.product_id.uom_id
+                    line.cost_unit = line.product_id.standard_price
+                continue
+            reference_uom = line._get_calculation_reference_uom()
+            if line.product_id:
+                line.uom_id = line.product_id.uom_id
+                line.cost_unit = line.product_id.standard_price
+            else:
+                line.uom_id = reference_uom
+            if line.calculation_method in ('area', 'volume'):
+                line.dimension_uom_id = line._get_dimension_uom_from_product_uom(line.uom_id)
 
     @api.constrains(
         'calculation_method', 'manual_quantity', 'pieces', 'width', 'height',
-        'depth', 'hours', 'waste_percent', 'cost_unit',
+        'depth', 'hours', 'waste_percent', 'cost_unit', 'dimension_uom_id',
+        'uom_id', 'product_id',
     )
     def _check_cost_inputs(self):
         for line in self:
@@ -131,10 +221,23 @@ class PartyonEstimateCostMixin(models.AbstractModel):
             if line.calculation_method in ('area', 'volume'):
                 if line.width <= 0 or line.height <= 0 or line.pieces <= 0:
                     raise ValidationError(_('Las dimensiones y las piezas deben ser mayores que cero.'))
+                meter = self.env.ref('uom.product_uom_meter')
+                if not line.dimension_uom_id or not line.dimension_uom_id._has_common_reference(meter):
+                    raise ValidationError(_('La unidad de las medidas debe ser una unidad de longitud.'))
             if line.calculation_method == 'volume' and line.depth <= 0:
                 raise ValidationError(_('La profundidad debe ser mayor que cero.'))
             if line.calculation_method == 'hours' and (line.hours <= 0 or line.pieces <= 0):
                 raise ValidationError(_('Las horas y las piezas deben ser mayores que cero.'))
+            if line.calculation_method != 'manual':
+                reference_uom = line._get_calculation_reference_uom()
+                if not line.uom_id or not reference_uom._has_common_reference(line.uom_id):
+                    raise ValidationError(_(
+                        'La unidad de consumo no es compatible con el tipo de cálculo seleccionado.'
+                    ))
+                if line.product_id and line.uom_id != line.product_id.uom_id:
+                    raise ValidationError(_(
+                        'La unidad de la línea debe ser la unidad configurada en el producto.'
+                    ))
 
 
 class PartyonEstimateLine(models.Model):
@@ -160,6 +263,21 @@ class PartyonEstimateLine(models.Model):
         related='estimate_id.currency_id',
         store=True,
     )
+    available_quantity = fields.Float(
+        string='Disponible',
+        compute='_compute_stock_quantities',
+        digits='Product Unit of Measure',
+    )
+    remaining_quantity = fields.Float(
+        string='Quedaría',
+        compute='_compute_stock_quantities',
+        digits='Product Unit of Measure',
+    )
+    shortage_quantity = fields.Float(
+        string='Faltante',
+        compute='_compute_stock_quantities',
+        digits='Product Unit of Measure',
+    )
     sale_unit = fields.Monetary(
         string='Venta unitaria',
         compute='_compute_sale_values',
@@ -175,6 +293,17 @@ class PartyonEstimateLine(models.Model):
         compute='_compute_sale_values',
         currency_field='currency_id',
     )
+
+    @api.depends('product_id', 'quantity')
+    def _compute_stock_quantities(self):
+        for line in self:
+            available = (
+                line.product_id.with_company(line.company_id).qty_available
+                if line.product_id and line.product_id.is_storable else 0.0
+            )
+            line.available_quantity = available
+            line.remaining_quantity = max(available - line.quantity, 0.0)
+            line.shortage_quantity = max(line.quantity - available, 0.0)
 
     @api.depends(
         'quantity', 'cost_subtotal', 'estimate_id.sale_price',

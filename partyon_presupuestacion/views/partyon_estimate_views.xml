@@ -1,5 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+    <record id="partyon_estimate_line_view_form" model="ir.ui.view">
+        <field name="name">partyon.estimate.line.form</field>
+        <field name="model">partyon.estimate.line</field>
+        <field name="arch" type="xml">
+            <form string="Línea de coste">
+                <sheet>
+                    <group>
+                        <group string="Recurso">
+                            <field name="line_type"/>
+                            <field name="product_id"/>
+                            <field name="name"/>
+                        </group>
+                        <group string="Cálculo">
+                            <field name="calculation_method" readonly="product_id"/>
+                            <field name="manual_quantity" invisible="calculation_method != 'manual'"/>
+                            <field name="hours" invisible="calculation_method != 'hours'"/>
+                            <field name="pieces" invisible="calculation_method not in ('area', 'volume', 'hours')"/>
+                        </group>
+                    </group>
+                    <group string="Medidas" invisible="calculation_method not in ('area', 'volume')">
+                        <group>
+                            <field name="width"/>
+                            <field name="height"/>
+                        </group>
+                        <group>
+                            <field name="depth" invisible="calculation_method != 'volume'"/>
+                            <field name="waste_percent"/>
+                        </group>
+                    </group>
+                    <field name="dimension_uom_id" invisible="1"/>
+                    <group string="Resultado">
+                        <group>
+                            <field name="quantity" readonly="1"/>
+                            <field name="uom_id" readonly="product_id"/>
+                            <field name="cost_unit" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="cost_subtotal" readonly="1"/>
+                        </group>
+                        <group string="Inventario">
+                            <field name="available_quantity" readonly="1"/>
+                            <field name="remaining_quantity" readonly="1"/>
+                            <field name="shortage_quantity" readonly="1"/>
+                        </group>
+                    </group>
+                    <field name="currency_id" invisible="1"/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <record id="partyon_estimate_view_form" model="ir.ui.view">
         <field name="name">partyon.estimate.form</field>
         <field name="model">partyon.estimate</field>
@@ -52,24 +101,23 @@
                     </group>
                     <notebook>
                         <page string="Costes" name="cost_lines">
-                            <field name="line_ids" readonly="state != 'draft'">
-                                <list editable="bottom">
+                            <field name="line_ids"
+                                   readonly="state != 'draft'"
+                                   mode="list"
+                                   context="{'form_view_ref': 'partyon_presupuestacion.partyon_estimate_line_view_form', 'dialog_size': 'large'}">
+                                <list>
                                     <field name="sequence" widget="handle"/>
-                                    <field name="line_type"/>
-                                    <field name="product_id" optional="show"/>
-                                    <field name="name"/>
-                                    <field name="calculation_method"/>
-                                    <field name="manual_quantity" optional="show" invisible="calculation_method != 'manual'"/>
-                                    <field name="pieces" optional="hide" invisible="calculation_method == 'manual'"/>
-                                    <field name="width" optional="hide" invisible="calculation_method not in ('area', 'volume')"/>
-                                    <field name="height" optional="hide" invisible="calculation_method not in ('area', 'volume')"/>
-                                    <field name="depth" optional="hide" invisible="calculation_method != 'volume'"/>
-                                    <field name="hours" optional="hide" invisible="calculation_method != 'hours'"/>
-                                    <field name="waste_percent" optional="hide" invisible="calculation_method not in ('area', 'volume')"/>
+                                    <field name="product_id"/>
+                                    <field name="name" optional="hide"/>
+                                    <field name="width" string="Ancho"/>
+                                    <field name="height" string="Largo"/>
+                                    <field name="pieces"/>
                                     <field name="quantity" readonly="1"/>
-                                    <field name="uom_id"/>
-                                    <field name="cost_unit"/>
+                                    <field name="uom_id" readonly="1"/>
                                     <field name="cost_subtotal" sum="Coste total"/>
+                                    <field name="available_quantity" optional="show" readonly="1"/>
+                                    <field name="remaining_quantity" optional="show" readonly="1"/>
+                                    <field name="shortage_quantity" optional="hide" readonly="1" decoration-danger="shortage_quantity &gt; 0"/>
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>

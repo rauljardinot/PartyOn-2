@@ -14,6 +14,12 @@ class TestPartyonEstimate(TransactionCase):
         ]
         cls.partner = cls.env['res.partner'].create({'name': 'Cliente de prueba'})
         cls.uom_unit = cls.env.ref('uom.product_uom_unit')
+        cls.uom_cm = cls.env.ref('uom.product_uom_cm')
+        cls.uom_meter = cls.env.ref('uom.product_uom_meter')
+        cls.uom_square_meter = cls.env.ref('uom.product_uom_square_meter')
+        cls.uom_square_foot = cls.env.ref('uom.product_uom_square_foot')
+        cls.uom_litre = cls.env.ref('uom.product_uom_litre')
+        cls.uom_hour = cls.env.ref('uom.product_uom_hour')
         cls.product = cls.env['product.product'].create({
             'name': 'Material de prueba',
             'standard_price': 10.0,
@@ -48,8 +54,9 @@ class TestPartyonEstimate(TransactionCase):
             'pieces': 2.0,
             'width': 100.0,
             'height': 200.0,
+            'dimension_uom_id': self.uom_cm.id,
             'waste_percent': 10.0,
-            'uom_id': self.uom_unit.id,
+            'uom_id': self.uom_square_meter.id,
             'cost_unit': 5.0,
         })])
         self.assertAlmostEqual(estimate.line_ids.quantity, 4.4)
@@ -57,6 +64,95 @@ class TestPartyonEstimate(TransactionCase):
         self.assertAlmostEqual(estimate.sale_price, 28.6)
         self.assertAlmostEqual(estimate.margin_amount, 6.6)
         self.assertAlmostEqual(estimate.margin_percent, 0.3)
+
+    def test_dimension_and_consumption_uom_conversion(self):
+        estimate = self._create_estimate(line_ids=[
+            fields.Command.create({
+                'line_type': 'material',
+                'name': 'Cartón por pie cuadrado',
+                'calculation_method': 'area',
+                'pieces': 1.0,
+                'width': 1.0,
+                'height': 2.0,
+                'dimension_uom_id': self.uom_meter.id,
+                'uom_id': self.uom_square_foot.id,
+                'cost_unit': 2.0,
+            }),
+            fields.Command.create({
+                'line_type': 'material',
+                'name': 'Resina por litro',
+                'calculation_method': 'volume',
+                'pieces': 1.0,
+                'width': 100.0,
+                'height': 100.0,
+                'depth': 100.0,
+                'dimension_uom_id': self.uom_cm.id,
+                'uom_id': self.uom_litre.id,
+                'cost_unit': 0.5,
+            }),
+        ])
+        area_line = estimate.line_ids.filtered(lambda line: line.calculation_method == 'area')
+        volume_line = estimate.line_ids.filtered(lambda line: line.calculation_method == 'volume')
+        self.assertAlmostEqual(area_line.quantity, 21.53)
+        self.assertAlmostEqual(area_line.cost_subtotal, 43.06)
+        self.assertAlmostEqual(volume_line.quantity, 1000.0)
+        self.assertAlmostEqual(volume_line.cost_subtotal, 500.0)
+
+    def test_product_uom_drives_dimensions_sale_and_stock(self):
+        area_product = self.env['product.product'].create({
+            'name': 'Cartón por metro cuadrado',
+            'standard_price': 10.0,
+            'type': 'consu',
+            'is_storable': True,
+            'uom_id': self.uom_square_meter.id,
+        })
+        warehouse = self.env['stock.warehouse'].search([
+            ('company_id', '=', self.env.company.id),
+        ], limit=1)
+        self.env['stock.quant']._update_available_quantity(
+            area_product,
+            warehouse.lot_stock_id,
+            70.0,
+        )
+
+        onchange_line = self.env['partyon.estimate.line'].new()
+        onchange_line.product_id = area_product
+        onchange_line._onchange_product_id()
+        self.assertEqual(onchange_line.calculation_method, 'area')
+        self.assertEqual(onchange_line.uom_id, self.uom_square_meter)
+        self.assertEqual(onchange_line.dimension_uom_id, self.uom_meter)
+        self.assertEqual(onchange_line.cost_unit, 10.0)
+
+        estimate = self._create_estimate(line_ids=[fields.Command.create({
+            'line_type': 'material',
+            'product_id': area_product.id,
+            'name': area_product.display_name,
+            'calculation_method': 'area',
+            'pieces': 1.0,
+            'width': 5.0,
+            'height': 6.0,
+            'dimension_uom_id': self.uom_meter.id,
+            'uom_id': self.uom_square_meter.id,
+            'cost_unit': 10.0,
+        })])
+        line = estimate.line_ids
+        self.assertEqual(line.quantity, 30.0)
+        self.assertEqual(line.cost_subtotal, 300.0)
+        self.assertEqual(line.available_quantity, 70.0)
+        self.assertEqual(line.remaining_quantity, 40.0)
+        self.assertEqual(line.shortage_quantity, 0.0)
+
+        estimate.quote_detail_mode = 'detail'
+        estimate.action_review()
+        estimate.action_approve()
+        estimate.action_create_sale_order()
+        sale_line = estimate.sale_order_id.order_line
+        self.assertEqual(sale_line.product_id, area_product)
+        self.assertEqual(sale_line.product_uom_qty, 30.0)
+        self.assertEqual(sale_line.product_uom_id, self.uom_square_meter)
+        estimate.sale_order_id.action_confirm()
+        self.assertEqual(area_product.qty_available, 70.0)
+        self.assertEqual(area_product.virtual_available, 40.0)
 
     def test_fixed_and_manual_price(self):
         estimate = self._create_estimate(margin_type='amount', margin_value=50.0)
@@ -77,7 +173,7 @@ class TestPartyonEstimate(TransactionCase):
                 'calculation_method': 'hours',
                 'hours': 3.0,
                 'pieces': 1.0,
-                'uom_id': self.uom_unit.id,
+                'uom_id': self.uom_hour.id,
                 'cost_unit': 12.0,
             })],
         })

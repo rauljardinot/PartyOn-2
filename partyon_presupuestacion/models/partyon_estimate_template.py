@@ -84,6 +84,7 @@ class PartyonEstimateTemplateLine(models.Model):
             'product_id': self.product_id.id,
             'name': self.name,
             'calculation_method': self.calculation_method,
+            'dimension_uom_id': self.dimension_uom_id.id,
             'manual_quantity': self.manual_quantity,
             'pieces': self.pieces,
             'width': self.width,
