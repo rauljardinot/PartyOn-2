@@ -1,31 +1,24 @@
 # -*- coding: utf-8 -*-
+
 from odoo import api, fields, models, _
-from odoo.exceptions import UserError
-from passlib.crypto.scrypt import estimate_maxmem
+from odoo.exceptions import AccessError, UserError, ValidationError
 
 
 class PartyonEstimate(models.Model):
     _name = 'partyon.estimate'
-    _description = 'Presupuestación Interna PartyOn'
+    _description = 'Presupuesto interno PartyOn'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _order = 'date desc, id desc'
     _check_company_auto = True
 
-    # -------------------------------------------------------------------------
-    # CAMPOS PRINCIPALES
-    # -------------------------------------------------------------------------
     name = fields.Char(
         string='Referencia',
         required=True,
         copy=False,
         readonly=True,
-        default='New',
+        default=lambda self: _('Nuevo'),
     )
-    estimate_name = fields.Char(
-        string='Nombre',
-        required=True,
-        copy=False,
-    )
+    estimate_name = fields.Char(string='Trabajo', required=True, tracking=True)
     active = fields.Boolean(default=True)
     partner_id = fields.Many2one(
         'res.partner',
@@ -43,6 +36,7 @@ class PartyonEstimate(models.Model):
     user_id = fields.Many2one(
         'res.users',
         string='Responsable',
+        required=True,
         default=lambda self: self.env.user,
         tracking=True,
     )
@@ -53,21 +47,18 @@ class PartyonEstimate(models.Model):
         default=lambda self: self.env.company,
     )
     currency_id = fields.Many2one(
-        'res.currency',
-        string='Moneda',
         related='company_id.currency_id',
         store=True,
     )
     date = fields.Date(
         string='Fecha',
+        required=True,
         default=fields.Date.context_today,
         tracking=True,
     )
-    date_validity = fields.Date(
-        string='Válido hasta',
-    )
+    date_validity = fields.Date(string='Válido hasta')
     state = fields.Selection(
-        selection=[
+        [
             ('draft', 'Borrador'),
             ('review', 'En revisión'),
             ('approved', 'Aprobado'),
@@ -76,385 +67,307 @@ class PartyonEstimate(models.Model):
             ('cancel', 'Cancelado'),
         ],
         string='Estado',
+        required=True,
         default='draft',
         tracking=True,
         copy=False,
     )
-
-    # -------------------------------------------------------------------------
-    # VERSIONADO
-    # -------------------------------------------------------------------------
-    version = fields.Integer(
-        string='Versión',
-        default=1,
-        copy=False,
-    )
+    version = fields.Integer(string='Versión', default=1, copy=False, readonly=True)
     parent_estimate_id = fields.Many2one(
         'partyon.estimate',
         string='Versión anterior',
         copy=False,
+        readonly=True,
     )
     child_estimate_ids = fields.One2many(
         'partyon.estimate',
         'parent_estimate_id',
         string='Versiones posteriores',
     )
-
-    # -------------------------------------------------------------------------
-    # LÍNEAS
-    # -------------------------------------------------------------------------
     line_ids = fields.One2many(
         'partyon.estimate.line',
         'estimate_id',
-        string='Líneas de presupuesto',
+        string='Líneas de coste',
         copy=True,
     )
-
-    # -------------------------------------------------------------------------
-    # DESCRIPCIÓN Y NOTAS
-    # -------------------------------------------------------------------------
     description = fields.Text(string='Descripción del trabajo')
     notes_internal = fields.Text(string='Notas internas')
-    notes_customer = fields.Text(string='Notas para el cliente')
-
-    # -------------------------------------------------------------------------
-    # RELACIÓN CON VENTA Y PROYECTO
-    # -------------------------------------------------------------------------
+    notes_customer = fields.Text(string='Condiciones y notas para el cliente')
     sale_order_id = fields.Many2one(
         'sale.order',
-        string='Pedido de venta',
+        string='Cotización',
         copy=False,
         readonly=True,
     )
-    sale_order_state = fields.Selection(
-        related='sale_order_id.state',
-        string='Estado del pedido',
+    sale_order_state = fields.Selection(related='sale_order_id.state')
+    project_id = fields.Many2one('project.project', string='Proyecto', copy=False)
+    template_id = fields.Many2one(
+        'partyon.estimate.template',
+        string='Plantilla',
+        check_company=True,
     )
-    project_id = fields.Many2one(
-        'project.project',
-        string='Proyecto',
-        copy=False,
-    )
+    estimate_category_id = fields.Many2one('estimate.category', string='Categoría')
 
-    # -------------------------------------------------------------------------
-    # CAMPOS COMPUTED — TOTALES DE COSTE
-    # -------------------------------------------------------------------------
     total_material_cost = fields.Monetary(
-        string='Coste de materiales',
-        compute='_compute_totals',
-        store=True,
-        currency_field='currency_id',
-    )
-    total_operation_cost = fields.Monetary(
-        string='Coste de operaciones',
-        compute='_compute_totals',
-        store=True,
+        string='Materiales', compute='_compute_totals', store=True,
         currency_field='currency_id',
     )
     total_labor_cost = fields.Monetary(
-        string='Coste de mano de obra',
-        compute='_compute_totals',
-        store=True,
+        string='Mano de obra', compute='_compute_totals', store=True,
         currency_field='currency_id',
     )
-    total_overhead_cost = fields.Monetary(
-        string='Costes generales',
-        compute='_compute_totals',
-        store=True,
+    total_external_cost = fields.Monetary(
+        string='Servicios externos', compute='_compute_totals', store=True,
         currency_field='currency_id',
     )
     total_shipping_cost = fields.Monetary(
-        string='Coste de envío',
-        compute='_compute_totals',
-        store=True,
+        string='Envío', compute='_compute_totals', store=True,
+        currency_field='currency_id',
+    )
+    total_overhead_cost = fields.Monetary(
+        string='Costes generales', compute='_compute_totals', store=True,
         currency_field='currency_id',
     )
     total_extra_cost = fields.Monetary(
-        string='Costes extra',
-        compute='_compute_totals',
-        store=True,
+        string='Extras / imprevistos', compute='_compute_totals', store=True,
         currency_field='currency_id',
     )
     subtotal_cost = fields.Monetary(
-        string='Subtotal coste',
-        compute='_compute_totals',
-        store=True,
+        string='Coste total', compute='_compute_totals', store=True,
         currency_field='currency_id',
     )
-
-    # -------------------------------------------------------------------------
-    # MARGEN
-    # -------------------------------------------------------------------------
     margin_type = fields.Selection(
-        selection=[
-            ('percent', 'Porcentaje'),
+        [
+            ('percent', 'Porcentaje sobre coste'),
             ('amount', 'Importe fijo'),
             ('manual', 'Precio final manual'),
         ],
-        string='Tipo de margen',
+        string='Método de precio',
+        required=True,
         default='percent',
+        tracking=True,
     )
     margin_value = fields.Float(
-        string='Valor del margen',
-        help='Porcentaje (ej. 30 para 30%) o importe fijo según el tipo seleccionado.',
+        string='Margen',
+        default=30.0,
+        help='Porcentaje sobre el coste o importe fijo, según el método elegido.',
     )
     manual_sale_price = fields.Monetary(
-        string='Precio de venta manual',
-        currency_field='currency_id',
-    )
-
-    # -------------------------------------------------------------------------
-    # PRECIOS FINALES COMPUTED
-    # -------------------------------------------------------------------------
-    suggested_sale_price = fields.Monetary(
-        string='Precio sugerido',
-        compute='_compute_sale_price',
-        store=True,
+        string='Precio final manual',
         currency_field='currency_id',
     )
     sale_price = fields.Monetary(
-        string='Precio de venta final',
-        compute='_compute_sale_price',
-        store=True,
+        string='Precio de venta', compute='_compute_sale_price', store=True,
         currency_field='currency_id',
     )
     margin_amount = fields.Monetary(
-        string='Importe del margen',
-        compute='_compute_sale_price',
-        store=True,
+        string='Beneficio', compute='_compute_sale_price', store=True,
         currency_field='currency_id',
     )
     margin_percent = fields.Float(
-        string='% Margen',
-        compute='_compute_sale_price',
-        store=True,
+        string='Margen sobre coste', compute='_compute_sale_price', store=True,
+        help='Beneficio dividido entre el coste total.',
     )
-
-    # -------------------------------------------------------------------------
-    # APROBACIÓN
-    # -------------------------------------------------------------------------
+    quote_detail_mode = fields.Selection(
+        [('summary', 'Una línea resumida'), ('detail', 'Desglose de líneas')],
+        string='Presentación al cliente',
+        required=True,
+        default='summary',
+    )
     approved_by = fields.Many2one(
-        'res.users',
-        string='Aprobado por',
-        copy=False,
-        readonly=True,
+        'res.users', string='Aprobado por', copy=False, readonly=True,
     )
     approved_date = fields.Datetime(
-        string='Fecha de aprobación',
-        copy=False,
-        readonly=True,
+        string='Fecha de aprobación', copy=False, readonly=True,
     )
 
-    #  Template
-    template_id = fields.Many2one('partyon.estimate.template', string='Plantilla de presupuesto')
-    estimate_category_id = fields.Many2one(
-        'estimate.category',
-        string="Categoría"
-    )
-
-    # -------------------------------------------------------------------------
-    # COMPUTED: TOTALES
-    # -------------------------------------------------------------------------
-    @api.depends( 'line_ids.cost_unit_real', 'line_ids.line_subtotal')
+    @api.depends('line_ids.line_type', 'line_ids.cost_subtotal')
     def _compute_totals(self):
+        total_fields = {
+            'material': 'total_material_cost',
+            'labor': 'total_labor_cost',
+            'external': 'total_external_cost',
+            'shipping': 'total_shipping_cost',
+            'overhead': 'total_overhead_cost',
+            'extra': 'total_extra_cost',
+        }
         for estimate in self:
-            lines = estimate.line_ids
-            estimate.total_material_cost = sum(lines.mapped('cost_unit_real'))
-            # estimate.total_operation_cost = sum(lines.mapped('subtotal_operation'))
-            # estimate.total_labor_cost = sum(lines.mapped('subtotal_labor'))
-            # estimate.total_overhead_cost = sum(lines.mapped('subtotal_overhead'))
-            # estimate.total_shipping_cost = sum(lines.mapped('subtotal_shipping'))
-            # estimate.total_extra_cost = sum(lines.mapped('subtotal_extra'))
-            estimate.subtotal_cost = sum(lines.mapped('line_subtotal'))
+            totals = dict.fromkeys(total_fields, 0.0)
+            for line in estimate.line_ids:
+                totals[line.line_type] += line.cost_subtotal
+            for line_type, field_name in total_fields.items():
+                estimate[field_name] = totals[line_type]
+            estimate.subtotal_cost = sum(totals.values())
 
-    # -------------------------------------------------------------------------
-    # COMPUTED: PRECIO DE VENTA
-    # -------------------------------------------------------------------------
     @api.depends('subtotal_cost', 'margin_type', 'margin_value', 'manual_sale_price')
     def _compute_sale_price(self):
         for estimate in self:
-            subtotal = estimate.subtotal_cost
-            margin_type = estimate.margin_type
-            margin_value = estimate.margin_value
-
-            if margin_type == 'percent':
-                margin_amt = subtotal * (margin_value / 100.0)
-                suggested = subtotal + margin_amt
-                # En el caso de que se seleccione el porcentaje, entonces será igual que el seleccionado.
-                print("Hola mi loco " + str(estimate.margin_percent) )
-                estimate.margin_percent = margin_value / 100
-            elif margin_type == 'amount':
-                margin_amt = margin_value
-                suggested = subtotal + margin_amt
-                # En el caso de que el margen sea un valor absoluto, se hace el cálculo para verlo
-                estimate.margin_percent = (
-                    ((margin_amt / subtotal * 100.0) / 100) if subtotal else 0.0
-                )
-
-            elif margin_type == 'manual':
-                suggested = estimate.manual_sale_price
-                margin_amt = suggested - subtotal
-
-                estimate.margin_percent = (
-                    ((margin_amt / subtotal * 100.0)/100) if subtotal else 0.0
-                )
+            if estimate.margin_type == 'percent':
+                sale_price = estimate.subtotal_cost * (1.0 + estimate.margin_value / 100.0)
+            elif estimate.margin_type == 'amount':
+                sale_price = estimate.subtotal_cost + estimate.margin_value
             else:
-                margin_amt = 0.0
-                suggested = subtotal
+                sale_price = estimate.manual_sale_price
+            estimate.sale_price = sale_price
+            estimate.margin_amount = sale_price - estimate.subtotal_cost
+            estimate.margin_percent = (
+                estimate.margin_amount / estimate.subtotal_cost
+                if estimate.subtotal_cost else 0.0
+            )
 
-            estimate.suggested_sale_price = suggested
-            estimate.sale_price = suggested
-            estimate.margin_amount = margin_amt
+    @api.constrains('margin_value', 'manual_sale_price', 'margin_type')
+    def _check_margin_values(self):
+        for estimate in self:
+            if estimate.margin_type in ('percent', 'amount') and estimate.margin_value < 0:
+                raise ValidationError(_('El margen no puede ser negativo.'))
+            if estimate.margin_type == 'manual' and estimate.manual_sale_price < 0:
+                raise ValidationError(_('El precio final no puede ser negativo.'))
 
-            # El porcentaje de margen cambiará en función de lo seleccionado.
-            # estimate.margin_percent = (
-            #     (margin_amt / subtotal * 100.0) if subtotal else 0.0
-            # )
+    @api.constrains('date', 'date_validity')
+    def _check_validity_date(self):
+        for estimate in self:
+            if estimate.date_validity and estimate.date_validity < estimate.date:
+                raise ValidationError(_('La fecha de validez no puede ser anterior a la fecha del presupuesto.'))
 
-    # -------------------------------------------------------------------------
-    # CRUD
-    # -------------------------------------------------------------------------
     @api.model_create_multi
     def create(self, vals_list):
-        for vals in vals_list:
-            if vals.get('name', 'New') == 'New':
-                vals['name'] = self.env['ir.sequence'].next_by_code(
-                    'partyon.estimate'
-                ) or 'New'
+        for values in vals_list:
+            if not values.get('name') or values['name'] in (_('Nuevo'), 'New'):
+                values['name'] = self.env['ir.sequence'].next_by_code('partyon.estimate') or _('Nuevo')
         return super().create(vals_list)
 
     def copy(self, default=None):
-        default = dict(default or {})
-        default['name'] = 'New'
-        return super().copy(default)
+        values = dict(default or {})
+        values.setdefault('name', _('Nuevo'))
+        values.setdefault('sale_order_id', False)
+        values.setdefault('approved_by', False)
+        values.setdefault('approved_date', False)
+        return super().copy(values)
 
-    # -------------------------------------------------------------------------
-    # ACCIONES DE FLUJO
-    # -------------------------------------------------------------------------
     def action_review(self):
-        for rec in self:
-            if rec.state != 'draft':
+        for estimate in self:
+            if estimate.state != 'draft':
                 raise UserError(_('Solo se pueden enviar a revisión presupuestos en borrador.'))
-            rec.state = 'review'
+            if not estimate.line_ids:
+                raise UserError(_('Añada al menos una línea de coste antes de enviar a revisión.'))
+            estimate.state = 'review'
 
     def action_approve(self):
-        for rec in self:
-            if rec.state != 'review':
+        if not self.env.user.has_group('partyon_presupuestacion.group_partyon_manager'):
+            raise AccessError(_('Solo un responsable de presupuestación puede aprobar.'))
+        for estimate in self:
+            if estimate.state != 'review':
                 raise UserError(_('Solo se pueden aprobar presupuestos en revisión.'))
-            rec.write({
+            estimate.write({
                 'state': 'approved',
                 'approved_by': self.env.user.id,
                 'approved_date': fields.Datetime.now(),
             })
 
     def action_cancel(self):
-        for rec in self:
-            if rec.state in ('customer_approved',):
-                raise UserError(
-                    _('No se puede cancelar un presupuesto ya aceptado por el cliente.')
-                )
-            rec.state = 'cancel'
+        for estimate in self:
+            if estimate.state == 'customer_approved':
+                raise UserError(_('No se puede cancelar un presupuesto aceptado por el cliente.'))
+            estimate.state = 'cancel'
 
     def action_draft(self):
-        for rec in self:
-            rec.write({
+        for estimate in self:
+            if estimate.sale_order_id and estimate.sale_order_id.state not in ('cancel',):
+                raise UserError(_('Cancele primero la cotización vinculada.'))
+            estimate.write({
                 'state': 'draft',
                 'approved_by': False,
                 'approved_date': False,
+                'sale_order_id': False,
             })
 
-    # -------------------------------------------------------------------------
-    # GENERAR COTIZACIÓN DE VENTA
-    # -------------------------------------------------------------------------
+    def action_apply_template(self):
+        self.ensure_one()
+        if self.state != 'draft':
+            raise UserError(_('Las plantillas solo se pueden aplicar en borrador.'))
+        if not self.template_id:
+            raise UserError(_('Seleccione una plantilla.'))
+        commands = [fields.Command.clear()]
+        commands.extend(
+            fields.Command.create(line._prepare_estimate_line_values())
+            for line in self.template_id.line_ids
+        )
+        self.write({
+            'line_ids': commands,
+            'estimate_category_id': self.template_id.category_id.id,
+            'margin_type': self.template_id.margin_type,
+            'margin_value': self.template_id.margin_value,
+            'manual_sale_price': self.template_id.manual_sale_price,
+            'quote_detail_mode': self.template_id.quote_detail_mode,
+        })
+
+    def _prepare_summary_sale_line(self):
+        self.ensure_one()
+        product = self.env.ref('partyon_presupuestacion.product_partyon_service')
+        return {
+            'product_id': product.id,
+            'name': self.estimate_name,
+            'product_uom_qty': 1.0,
+            'product_uom_id': product.uom_id.id,
+            'price_unit': self.sale_price,
+            'purchase_price': self.subtotal_cost,
+        }
+
+    def _prepare_detailed_sale_lines(self):
+        self.ensure_one()
+        generic_product = self.env.ref('partyon_presupuestacion.product_partyon_service')
+        values = []
+        for line in self.line_ids:
+            product = line.product_id or generic_product
+            values.append({
+                'product_id': product.id,
+                'name': line.name,
+                'product_uom_qty': line.quantity,
+                'product_uom_id': line.uom_id.id or product.uom_id.id,
+                'price_unit': line.sale_unit,
+                'purchase_price': line.cost_unit,
+            })
+        return values
+
     def action_create_sale_order(self):
         self.ensure_one()
         if self.state != 'approved':
             raise UserError(_('El presupuesto debe estar aprobado para generar una cotización.'))
         if self.sale_order_id:
-            raise UserError(
-                _('Ya existe un pedido de venta vinculado: %s') % self.sale_order_id.name
-            )
-        subtotal_products = 0
-
-        order_lines = []
-        client_lines = []
-        for line in self.line_ids:
-            product = line.product_id
-            if not product:
-                # Crear una línea con un producto genérico o sección
-                product = self.env.ref(
-                    'partyon_presupuestacion.product_partyon_service',
-                    raise_if_not_found=False,
-                )
-            order_lines.append((0, 0, {
-                'product_id': product.id if product else False,
-                'name': line.name or (product.display_name if product else 'Línea de presupuesto'),
-                'product_uom_qty': line.quantity,
-                'product_uom_id': line.uom_id.id if line.uom_id else False,
-                'price_unit': line.cost_product_unit,
-            }))
-
-            # Hago aquí el sumatorio de los costes para pasarlo a la linea
-            subtotal_products += line.line_cost_subtotal
-
-            # TODO: Se me ocurre pasarle solo una linea, con el nombre el total, ya después e podrá arreglar.
-            # client_lines.append((0, 0, {
-            #     'product_name': product.name if product else False,
-            #     'line_total': line.line_subtotal if line.line_subtotal else False,
-            #     'taxes_id': line.prouct.taxes_ids if line.product.taxes_ids else False,
-            #     'unit_price': line.product.price_unit, ###
-            #     'product_amount': line.product_uom_qty,
-            # }))
-
-        client_lines.append((0, 0, {
-            'product_name': self.estimate_name if self.estimate_name else 'Presupuesto de producto',
-            'line_total': subtotal_products if subtotal_products > 0  else 0,
-            'unit_price': subtotal_products if subtotal_products > 0  else 0,
-            'product_amount': 1,
-        }))
-
+            raise UserError(_('Ya existe una cotización vinculada: %s') % self.sale_order_id.display_name)
+        if not self.line_ids:
+            raise UserError(_('No se puede cotizar un presupuesto sin líneas.'))
+        line_values = (
+            [self._prepare_summary_sale_line()]
+            if self.quote_detail_mode == 'summary'
+            else self._prepare_detailed_sale_lines()
+        )
         sale_order = self.env['sale.order'].create({
             'partner_id': self.partner_id.id,
             'origin': self.name,
             'company_id': self.company_id.id,
+            'opportunity_id': self.opportunity_id.id,
+            'validity_date': self.date_validity,
             'note': self.notes_customer,
-            'order_line': order_lines,
-            'partyon_sale_line_ids': client_lines,
+            'partyon_estimate_id': self.id,
+            'order_line': [fields.Command.create(values) for values in line_values],
         })
+        self.write({'sale_order_id': sale_order.id, 'state': 'quoted'})
+        return self.action_view_sale_order()
 
-        self.write({
-            'sale_order_id': sale_order.id,
-            'state': 'quoted',
-        })
-
-        return {
-            'type': 'ir.actions.act_window',
-            'name': _('Cotización'),
-            'res_model': 'sale.order',
-            'res_id': sale_order.id,
-            'view_mode': 'form',
-            'target': 'current',
-        }
-
-    # -------------------------------------------------------------------------
-    # VER PEDIDO DE VENTA
-    # -------------------------------------------------------------------------
     def action_view_sale_order(self):
         self.ensure_one()
         if not self.sale_order_id:
-            raise UserError(_('No hay ningún pedido de venta vinculado.'))
+            raise UserError(_('No hay una cotización vinculada.'))
         return {
             'type': 'ir.actions.act_window',
-            'name': _('Pedido de venta'),
+            'name': _('Cotización'),
             'res_model': 'sale.order',
             'res_id': self.sale_order_id.id,
             'view_mode': 'form',
             'target': 'current',
         }
 
-    # -------------------------------------------------------------------------
-    # NUEVA VERSIÓN
-    # -------------------------------------------------------------------------
     def action_new_version(self):
         self.ensure_one()
         new_estimate = self.copy({
@@ -471,27 +384,8 @@ class PartyonEstimate(models.Model):
             'target': 'current',
         }
 
-    # -------------------------------------------------------------------------
-    # MARCAR ACEPTADO POR CLIENTE
-    # -------------------------------------------------------------------------
     def action_customer_approve(self):
-        for rec in self:
-            if rec.state != 'quoted':
-                raise UserError(
-                    _('Solo se puede marcar como aceptado un presupuesto ya cotizado.')
-                )
-            rec.state = 'customer_approved'
-
-    # -------------------------------------------------------------------------
-    # APLICAR LA PLANTILLA AL PRESUPUESTO
-    # -------------------------------------------------------------------------
-
-    def action_apply_estimate(self):
-        for rec in self:
-            if rec.template_id:
-                rec.line_ids.unlink()  # TODO: Preguntar si es mejor hacer un False.
-                rec.line_ids = rec.template_id.partyon_estimate_lines_ids
-                # TODO: Pregutnar si se puede hacer así para que no pase referencia en memoria.
-
-            else:
-                raise UserError("Debe añadir una plantilla antes de pulsar el botón!")
+        for estimate in self:
+            if estimate.state != 'quoted':
+                raise UserError(_('Solo se puede aceptar un presupuesto ya cotizado.'))
+            estimate.state = 'customer_approved'

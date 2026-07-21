@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Secuencia para presupuestos internos -->
     <record id="seq_partyon_estimate" model="ir.sequence">
         <field name="name">Presupuesto Interno PartyOn</field>
         <field name="code">partyon.estimate</field>
@@ -11,7 +10,6 @@
         <field name="number_next">1</field>
     </record>
 
-    <!-- Producto de servicio genérico para cotizaciones -->
     <record id="product_partyon_service" model="product.product">
         <field name="name">Servicio PartyOn - Trabajo personalizado</field>
         <field name="type">service</field>
@@ -22,4 +20,3 @@
     </record>
 
 </odoo>
-

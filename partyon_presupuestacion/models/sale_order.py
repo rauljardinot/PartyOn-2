@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models
 
-class sale_order(models.Model):
+from odoo import fields, models
+
+
+class SaleOrder(models.Model):
     _inherit = 'sale.order'
-    _description = 'Sale Order'
 
-    only_estimate_name = fields.Boolean(string='No pasar detalles')
-    partyon_sale_line_ids = fields.One2many('partyon.sale.line', 'sale_order_id', string='Lineas de producto')
-    sale_line_notes = fields.Char(string="Notas de producto")
+    partyon_estimate_id = fields.Many2one(
+        'partyon.estimate',
+        string='Presupuesto interno',
+        copy=False,
+        readonly=True,
+        check_company=True,
+    )

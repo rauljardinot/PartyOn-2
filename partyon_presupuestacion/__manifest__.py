@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'PartyOn Presupuestación',
-    'version': '19.0.1.0.0',
+    'version': '19.0.2.0.0',
     'category': 'Sales/Estimations',
     'summary': 'Presupuestación interna de trabajos personalizados para PartyOn',
     'description': """
@@ -14,11 +14,8 @@
     'depends': [
         'crm',
         'sale_management',
-        'stock',
-        'purchase',
-        'account',
+        'sale_margin',
         'mail',
-        'contacts',
         'project',
     ],
     'data': [
@@ -30,11 +27,8 @@
         'views/sale_order_view.xml',
         'views/estimate_category_views.xml',
         'views/menu_views.xml',
+        'report/estimate_report.xml',
     ],
-    # 'demo': [
-    #     'demo/product.category.csv',
-    #     'demo/product.template.csv',
-    # ],
     'installable': True,
     'application': True,
     'auto_install': False,

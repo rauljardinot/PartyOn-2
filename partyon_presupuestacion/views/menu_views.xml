@@ -1,13 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
 
-    <!-- Menú raíz -->
     <menuitem id="partyon_menu_root"
               name="Presupuestación"
               web_icon="partyon_presupuestacion,static/description/icon.png"
               sequence="25"/>
 
-    <!-- Submenú: Presupuestos -->
     <menuitem id="partyon_menu_estimates"
               name="Presupuestos"
               parent="partyon_menu_root"
@@ -19,13 +17,11 @@
               action="partyon_estimate_action"
               sequence="10"/>
 
-    <!-- Submenú: Configuración (para futuras opciones) -->
     <menuitem id="partyon_menu_config"
               name="Configuración"
               parent="partyon_menu_root"
               sequence="90"/>
 
-    <!-- Menu de configuración. -->
     <menuitem id="partyon_menu_config_estimate_categ"
               name="Categorías"
               parent="partyon_menu_config"
@@ -44,4 +40,3 @@
               sequence="10"/>
 
 </odoo>
-

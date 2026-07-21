@@ -1,182 +1,115 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-
-    <!-- =================================================================== -->
-    <!-- FORMULARIO: partyon.estimate                                        -->
-    <!-- =================================================================== -->
     <record id="partyon_estimate_view_form" model="ir.ui.view">
         <field name="name">partyon.estimate.form</field>
         <field name="model">partyon.estimate</field>
         <field name="arch" type="xml">
-            <form string="Presupuesto Interno">
+            <form string="Presupuesto interno">
                 <header>
-                    <!-- Botones de flujo -->
-                    <button name="action_review"
-                            string="Enviar a revisión"
-                            type="object"
-                            class="btn-primary"
-                            invisible="state != 'draft'"/>
-                    <button name="action_approve"
-                            string="Aprobar"
-                            type="object"
-                            class="btn-primary"
-                            invisible="state != 'review'"/>
-                    <button name="action_create_sale_order"
-                            string="Generar cotización"
-                            type="object"
-                            class="btn-primary"
-                            invisible="state != 'approved'"/>
-                    <button name="action_customer_approve"
-                            string="Cliente acepta"
-                            type="object"
-                            class="btn-primary"
-                            invisible="state != 'quoted'"/>
-                    <button name="action_new_version"
-                            string="Nueva versión"
-                            type="object"
-                            invisible="state in ('cancel',)"/>
-                    <button name="action_cancel"
-                            string="Cancelar"
-                            type="object"
-                            invisible="state in ('cancel', 'customer_approved')"/>
-                    <button name="action_draft"
-                            string="Volver a borrador"
-                            type="object"
-                            invisible="state not in ('cancel', 'review')"/>
-                    <button name="action_apply_estimate"
-                            string="Aplicar Plantilla"
-                            type="object"
-                            class="btn-primary"
-                            confirm="Esta acción eliminará las lineas actuales y traerá las de la plantilla. ¿ Está seguro de esto?"
-                            invisible="not template_id"/>
-                    <field name="state"
-                           widget="statusbar"
-                           statusbar_visible="draft,review,approved,quoted,customer_approved"/>
+                    <button name="action_review" string="Enviar a revisión" type="object" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_approve" string="Aprobar" type="object" class="btn-primary" invisible="state != 'review'" groups="partyon_presupuestacion.group_partyon_manager"/>
+                    <button name="action_create_sale_order" string="Crear cotización" type="object" class="btn-primary" invisible="state != 'approved'"/>
+                    <button name="action_customer_approve" string="Cliente acepta" type="object" class="btn-primary" invisible="state != 'quoted'"/>
+                    <button name="action_new_version" string="Nueva versión" type="object" invisible="state == 'cancel'"/>
+                    <button name="action_cancel" string="Cancelar" type="object" invisible="state in ('cancel', 'customer_approved')"/>
+                    <button name="action_draft" string="Volver a borrador" type="object" invisible="state not in ('cancel', 'review')"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,review,approved,quoted,customer_approved"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_view_sale_order"
-                                type="object"
-                                class="oe_stat_button"
-                                icon="fa-shopping-cart"
-                                invisible="not sale_order_id">
-                            <field name="sale_order_id" widget="statinfo" string="Pedido"/>
+                        <button name="action_view_sale_order" type="object" class="oe_stat_button" icon="fa-shopping-cart" invisible="not sale_order_id">
+                            <field name="sale_order_id" widget="statinfo" string="Cotización"/>
                         </button>
                     </div>
                     <div class="oe_title">
-                        <h1>
-                            <field name="name" readonly="1"/>
-                        </h1>
+                        <label for="name"/>
+                        <h1><field name="name"/></h1>
+                        <h2><field name="estimate_name" placeholder="Nombre del trabajo"/></h2>
                     </div>
                     <group>
                         <group>
-                            <field name="partner_id"/>
-                            <field name="estimate_name"/>
+                            <field name="partner_id" readonly="state != 'draft'"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                            <field name="estimate_category_id" readonly="state != 'draft'"/>
                             <field name="opportunity_id"/>
                             <field name="project_id"/>
-                            <field name="user_id"/>
-                            <field name="template_id"/>
                         </group>
                         <group>
-                            <field name="date"/>
-                            <field name="date_validity"/>
-                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="date" readonly="state != 'draft'"/>
+                            <field name="date_validity" readonly="state != 'draft'"/>
+                            <field name="company_id" groups="base.group_multi_company" readonly="state != 'draft'"/>
                             <field name="currency_id" invisible="1"/>
                             <field name="version"/>
-                            <field name="parent_estimate_id" readonly="1"/>
-                            <field name="estimate_category_id"/>
+                            <field name="parent_estimate_id" invisible="not parent_estimate_id"/>
                         </group>
                     </group>
                     <group>
-                        <field name="description" placeholder="Descripción general del trabajo..."/>
+                        <field name="description" placeholder="Qué se fabricará, acabado, instalación y alcance..." readonly="state != 'draft'"/>
                     </group>
-
+                    <group string="Plantilla" invisible="state != 'draft'">
+                        <field name="template_id"/>
+                        <button name="action_apply_template" string="Aplicar plantilla" type="object" class="btn-secondary" invisible="not template_id" confirm="Se reemplazarán las líneas actuales por una copia de la plantilla."/>
+                    </group>
                     <notebook>
-                        <!-- Pestaña: Líneas de presupuesto -->
-                        <page string="Líneas de presupuesto" name="lines">
-                            <field name="line_ids">
+                        <page string="Costes" name="cost_lines">
+                            <field name="line_ids" readonly="state != 'draft'">
                                 <list editable="bottom">
                                     <field name="sequence" widget="handle"/>
-                                    <field name="product_id"/>
-                                    <field name="width" optional="show"/>
-                                    <field name="height" optional="show"/>
-                                    <field name="name" optional="hide"/>
-                                    <field name="quantity"/>
-<!--                                    <field name="cost_unit_real" optional="show"/>-->
-                                    <field name="cost_product_unit" optional="show"/>
-                                    <field name="lst_price" optional="show"/>
-                                    <field name="uom_id" domain="[('name', 'in', ['m²', 'cm²', 'Unidades'])]"/>
-                                    <field name="depth" optional="hide"/>
-                                    <field name="area" optional="hide"/>
-<!--                                    <field name="product_margin_percentage" optional="show"/>-->
-                                    <field name="line_subtotal" sum="Total" string="PVP"/>
-                                    <field name="line_cost_subtotal" sum="Total"/>
+                                    <field name="line_type"/>
+                                    <field name="product_id" optional="show"/>
+                                    <field name="name"/>
+                                    <field name="calculation_method"/>
+                                    <field name="manual_quantity" optional="show" invisible="calculation_method != 'manual'"/>
+                                    <field name="pieces" optional="hide" invisible="calculation_method == 'manual'"/>
+                                    <field name="width" optional="hide" invisible="calculation_method not in ('area', 'volume')"/>
+                                    <field name="height" optional="hide" invisible="calculation_method not in ('area', 'volume')"/>
+                                    <field name="depth" optional="hide" invisible="calculation_method != 'volume'"/>
+                                    <field name="hours" optional="hide" invisible="calculation_method != 'hours'"/>
+                                    <field name="waste_percent" optional="hide" invisible="calculation_method not in ('area', 'volume')"/>
+                                    <field name="quantity" readonly="1"/>
+                                    <field name="uom_id"/>
+                                    <field name="cost_unit"/>
+                                    <field name="cost_subtotal" sum="Coste total"/>
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>
                         </page>
-
-                        <!-- Pestaña: Dimensiones del material -->
-                        <page string="Material y dimensiones" name="material_dimensions">
-                            <field name="line_ids">
-                                <list editable="bottom" create="1" delete="0">
-                                    <field name="product_id" readonly="1"/>
-                                    <field name="name" readonly="1"/>
-                                    <field name="width"/>
-                                    <field name="height"/>
-                                    <field name="depth"/>
-                                    <field name="area"/>
-                                    <field name="currency_id" column_invisible="1"/>
-                                </list>
-                            </field>
-                        </page>
-
-                        <!-- Pestaña: Tiempos y mano de obra -->
-                        <page string="Tiempos y mano de obra" name="labor">
-                            <field name="line_ids">
-                                <list editable="bottom" create="0" delete="0">
-                                    <field name="product_id" readonly="1"/>
-                                    <field name="name" readonly="1"/>
-                                    <field name="currency_id" column_invisible="1"/>
-                                </list>
-                            </field>
-                        </page>
-
-                        <!-- Pestaña: Margen y precio -->
-                        <page string="Margen y precio" name="margin">
+                        <page string="Precio y beneficio" name="pricing">
                             <group>
-                                <group string="Margen global">
-                                    <field name="margin_type"/>
-                                    <field name="margin_value"
-                                           invisible="margin_type == 'manual'"/>
-                                    <field name="manual_sale_price"
-                                           invisible="margin_type != 'manual'"/>
+                                <group string="Configuración">
+                                    <field name="margin_type" readonly="state != 'draft'"/>
+                                    <field name="margin_value" invisible="margin_type == 'manual'" readonly="state != 'draft'"/>
+                                    <field name="manual_sale_price" invisible="margin_type != 'manual'" readonly="state != 'draft'"/>
+                                    <field name="quote_detail_mode" readonly="state != 'draft'"/>
                                 </group>
                                 <group string="Resultado">
                                     <field name="subtotal_cost"/>
                                     <field name="margin_amount"/>
                                     <field name="margin_percent" widget="percentage"/>
-                                    <field name="suggested_sale_price"/>
-                                    <field name="sale_price"/>
+                                    <field name="sale_price" class="oe_subtotal_footer_separator"/>
                                 </group>
                             </group>
-                            <separator string="Margen por línea"/>
-                            <field name="line_ids">
-                                <list editable="bottom" create="0" delete="0">
-                                    <field name="product_id" readonly="1"/>
-                                    <field name="name" readonly="1"/>
-                                    <field name="line_subtotal"/>
-                                    <field name="line_margin_type"/>
-                                    <field name="line_margin_value"/>
-                                    <field name="cost_unit_real"/>
+                            <field name="line_ids" readonly="1">
+                                <list create="0" delete="0">
+                                    <field name="line_type"/>
+                                    <field name="name"/>
+                                    <field name="cost_subtotal" sum="Coste"/>
+                                    <field name="sale_subtotal" sum="Venta"/>
+                                    <field name="margin_amount" sum="Beneficio"/>
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>
                         </page>
-
-                        <!-- Pestaña: Totales -->
-                        <page string="Resumen de costes" name="totals">
+                        <page string="Resumen" name="summary">
                             <group>
+                                <group string="Costes por tipo">
+                                    <field name="total_material_cost"/>
+                                    <field name="total_labor_cost"/>
+                                    <field name="total_external_cost"/>
+                                    <field name="total_shipping_cost"/>
+                                    <field name="total_overhead_cost"/>
+                                    <field name="total_extra_cost"/>
+                                </group>
                                 <group string="Totales">
                                     <field name="subtotal_cost"/>
                                     <field name="margin_amount"/>
@@ -184,24 +117,26 @@
                                 </group>
                             </group>
                         </page>
-
-                        <!-- Pestaña: Aprobación -->
-                        <page string="Aprobación e información" name="approval">
+                        <page string="Notas" name="notes">
                             <group>
-                                <group string="Aprobación">
-                                    <field name="approved_by"/>
-                                    <field name="approved_date"/>
-                                </group>
-                                <group string="Versionado">
+                                <field name="notes_customer" placeholder="Condiciones, exclusiones y observaciones visibles para el cliente..."/>
+                                <field name="notes_internal" placeholder="Información que solo verá el equipo..."/>
+                            </group>
+                            <group string="Aprobación">
+                                <field name="approved_by"/>
+                                <field name="approved_date"/>
+                            </group>
+                        </page>
+                        <page string="Versiones" name="versions" invisible="not parent_estimate_id and not child_estimate_ids">
+                            <field name="child_estimate_ids" readonly="1">
+                                <list create="0" delete="0">
+                                    <field name="name"/>
                                     <field name="version"/>
-                                    <field name="parent_estimate_id"/>
-                                    <field name="child_estimate_ids" readonly="1"/>
-                                </group>
-                            </group>
-                            <group string="Notas">
-                                <field name="notes_internal" placeholder="Notas internas..."/>
-                                <field name="notes_customer" placeholder="Notas para el cliente..."/>
-                            </group>
+                                    <field name="date"/>
+                                    <field name="sale_price"/>
+                                    <field name="state" widget="badge"/>
+                                </list>
+                            </field>
                         </page>
                     </notebook>
                 </sheet>
@@ -210,142 +145,75 @@
         </field>
     </record>
 
-    <!-- =================================================================== -->
-    <!-- LISTA: partyon.estimate                                             -->
-    <!-- =================================================================== -->
     <record id="partyon_estimate_view_tree" model="ir.ui.view">
-        <field name="name">partyon.estimate.tree</field>
+        <field name="name">partyon.estimate.list</field>
         <field name="model">partyon.estimate</field>
         <field name="arch" type="xml">
-            <list string="Presupuestos Internos"
-                  decoration-info="state == 'draft'"
-                  decoration-warning="state == 'review'"
-                  decoration-success="state in ('approved', 'customer_approved')"
-                  decoration-muted="state == 'cancel'">
+            <list string="Presupuestos internos" decoration-info="state == 'draft'" decoration-warning="state == 'review'" decoration-success="state in ('approved', 'customer_approved')" decoration-muted="state == 'cancel'">
                 <field name="name"/>
+                <field name="estimate_name"/>
                 <field name="partner_id"/>
                 <field name="user_id" widget="many2one_avatar_user"/>
                 <field name="date"/>
-                <field name="version"/>
-                <field name="estimate_category_id"/>
-                <field name="subtotal_cost" sum="Total coste"/>
-                <field name="sale_price" sum="Total venta"/>
-                <field name="margin_percent" widget="percentage"/>
-                <field name="state" widget="badge"
-                       decoration-info="state == 'draft'"
-                       decoration-warning="state == 'review'"
-                       decoration-success="state in ('approved', 'customer_approved')"
-                       decoration-danger="state == 'cancel'"/>
-                <field name="company_id" groups="base.group_multi_company"/>
+                <field name="estimate_category_id" optional="show"/>
+                <field name="subtotal_cost" sum="Coste"/>
+                <field name="sale_price" sum="Venta"/>
+                <field name="margin_amount" sum="Beneficio"/>
+                <field name="state" widget="badge"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
                 <field name="currency_id" column_invisible="1"/>
             </list>
         </field>
     </record>
 
-    <!-- =================================================================== -->
-    <!-- KANBAN: partyon.estimate                                            -->
-    <!-- =================================================================== -->
     <record id="partyon_estimate_view_kanban" model="ir.ui.view">
         <field name="name">partyon.estimate.kanban</field>
         <field name="model">partyon.estimate</field>
         <field name="arch" type="xml">
             <kanban default_group_by="state" class="o_kanban_small_column">
-                <field name="name"/>
-                <field name="partner_id"/>
-                <field name="user_id"/>
-                <field name="sale_price"/>
-                <field name="currency_id"/>
-                <field name="state"/>
-                <field name="active"/>
+                <field name="name"/><field name="estimate_name"/><field name="partner_id"/>
+                <field name="user_id"/><field name="sale_price"/><field name="currency_id"/><field name="state"/>
                 <templates>
                     <t t-name="card">
-                        <div class="oe_kanban_details">
-                            <strong class="o_kanban_record_title">
-                                <field name="name"/>
-                            </strong>
-                            <div class="o_kanban_record_subtitle">
-                                <field name="partner_id"/>
-                            </div>
-                            <div>
-                                <field name="sale_price" widget="monetary"/>
-                            </div>
-                            <div class="o_kanban_record_bottom">
-                                <div class="oe_kanban_bottom_left">
-                                    <field name="state" widget="label_selection"
-                                           options="{'classes': {
-                                               'draft': 'info',
-                                               'review': 'warning',
-                                               'approved': 'success',
-                                               'quoted': 'primary',
-                                               'customer_approved': 'success',
-                                               'cancel': 'danger'
-                                           }}"/>
-                                </div>
-                                <div class="oe_kanban_bottom_right">
-                                    <field name="user_id" widget="many2one_avatar_user"/>
-                                </div>
-                            </div>
-                        </div>
+                        <div class="fw-bold"><field name="estimate_name"/></div>
+                        <div><field name="name"/> · <field name="partner_id"/></div>
+                        <div class="mt-2"><field name="sale_price" widget="monetary"/></div>
+                        <footer><field name="state" widget="badge"/><field name="user_id" widget="many2one_avatar_user"/></footer>
                     </t>
                 </templates>
             </kanban>
         </field>
     </record>
 
-    <!-- =================================================================== -->
-    <!-- BÚSQUEDA: partyon.estimate                                          -->
-    <!-- =================================================================== -->
     <record id="partyon_estimate_view_search" model="ir.ui.view">
         <field name="name">partyon.estimate.search</field>
         <field name="model">partyon.estimate</field>
         <field name="arch" type="xml">
             <search string="Buscar presupuestos">
-                <field name="name"/>
-                <field name="partner_id"/>
-                <field name="user_id"/>
-                <field name="opportunity_id"/>
-                <separator/>
-                <filter string="Borrador" name="filter_draft" domain="[('state', '=', 'draft')]"/>
-                <filter string="En revisión" name="filter_review" domain="[('state', '=', 'review')]"/>
-                <filter string="Aprobado" name="filter_approved" domain="[('state', '=', 'approved')]"/>
-                <filter string="Cotizado" name="filter_quoted" domain="[('state', '=', 'quoted')]"/>
-                <filter string="Aceptado" name="filter_customer_approved" domain="[('state', '=', 'customer_approved')]"/>
-                <filter string="Cancelado" name="filter_cancel" domain="[('state', '=', 'cancel')]"/>
-                <separator/>
-                <filter string="Mis presupuestos" name="filter_my" domain="[('user_id', '=', uid)]"/>
-                <separator/>
-                <filter string="Archivados" name="filter_inactive" domain="[('active', '=', False)]"/>
+                <field name="name"/><field name="estimate_name"/><field name="partner_id"/><field name="user_id"/>
+                <filter string="Borrador" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="En revisión" name="review" domain="[('state', '=', 'review')]"/>
+                <filter string="Aprobado" name="approved" domain="[('state', '=', 'approved')]"/>
+                <filter string="Cotizado" name="quoted" domain="[('state', '=', 'quoted')]"/>
+                <filter string="Mis presupuestos" name="my" domain="[('user_id', '=', uid)]"/>
+                <filter string="Archivados" name="inactive" domain="[('active', '=', False)]"/>
                 <group>
                     <filter string="Estado" name="group_state" context="{'group_by': 'state'}"/>
                     <filter string="Cliente" name="group_partner" context="{'group_by': 'partner_id'}"/>
                     <filter string="Categoría" name="group_category" context="{'group_by': 'estimate_category_id'}"/>
                     <filter string="Responsable" name="group_user" context="{'group_by': 'user_id'}"/>
                     <filter string="Fecha" name="group_date" context="{'group_by': 'date:month'}"/>
-                    <filter string="Compañía" name="group_company" context="{'group_by': 'company_id'}" groups="base.group_multi_company"/>
                 </group>
             </search>
         </field>
     </record>
 
-    <!-- =================================================================== -->
-    <!-- ACCIÓN: partyon.estimate                                            -->
-    <!-- =================================================================== -->
     <record id="partyon_estimate_action" model="ir.actions.act_window">
-        <field name="name">Presupuestos Internos</field>
+        <field name="name">Presupuestos internos</field>
         <field name="res_model">partyon.estimate</field>
         <field name="view_mode">list,kanban,form</field>
         <field name="search_view_id" ref="partyon_estimate_view_search"/>
-        <field name="context">{'search_default_filter_my': 1}</field>
-        <field name="help" type="html">
-            <p class="o_view_nocontent_smiling_face">
-                Crear un nuevo presupuesto interno
-            </p>
-            <p>
-                Registre presupuestos internos para calcular costes y márgenes
-                antes de enviar cotizaciones a sus clientes.
-            </p>
-        </field>
+        <field name="context">{'search_default_my': 1}</field>
+        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Cree el primer presupuesto interno</p></field>
     </record>
-
 </odoo>
-

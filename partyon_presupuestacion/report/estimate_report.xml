@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_report_partyon_estimate" model="ir.actions.report">
+        <field name="name">Presupuesto para cliente</field>
+        <field name="model">partyon.estimate</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">partyon_presupuestacion.report_partyon_estimate</field>
+        <field name="report_file">partyon_presupuestacion.report_partyon_estimate</field>
+        <field name="print_report_name">'Presupuesto - %s' % object.name</field>
+        <field name="binding_model_id" ref="model_partyon_estimate"/>
+        <field name="binding_type">report</field>
+    </record>
+
+    <template id="report_partyon_estimate">
+        <t t-call="web.html_container">
+            <t t-foreach="docs" t-as="doc">
+                <t t-set="o" t-value="doc"/>
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <h2>Presupuesto <span t-field="doc.name"/></h2>
+                        <div class="row mt-3 mb-4">
+                            <div class="col-7">
+                                <strong>Cliente</strong>
+                                <div t-field="doc.partner_id" t-options="{'widget': 'contact', 'fields': ['name', 'address'], 'no_marker': True}"/>
+                            </div>
+                            <div class="col-5">
+                                <div><strong>Fecha:</strong> <span t-field="doc.date"/></div>
+                                <div t-if="doc.date_validity"><strong>Válido hasta:</strong> <span t-field="doc.date_validity"/></div>
+                            </div>
+                        </div>
+                        <h3 t-field="doc.estimate_name"/>
+                        <p t-if="doc.description" t-field="doc.description"/>
+                        <table class="table table-sm o_main_table mt-4">
+                            <thead>
+                                <tr><th>Descripción</th><th class="text-end">Cantidad</th><th class="text-end">Precio</th></tr>
+                            </thead>
+                            <tbody>
+                                <t t-if="doc.quote_detail_mode == 'detail'">
+                                    <tr t-foreach="doc.line_ids" t-as="line">
+                                        <td><span t-field="line.name"/></td>
+                                        <td class="text-end"><span t-field="line.quantity"/> <span t-field="line.uom_id"/></td>
+                                        <td class="text-end"><span t-field="line.sale_subtotal" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
+                                    </tr>
+                                </t>
+                                <tr t-else="">
+                                    <td><span t-field="doc.estimate_name"/></td>
+                                    <td class="text-end">1</td>
+                                    <td class="text-end"><span t-field="doc.sale_price" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                        <div class="row justify-content-end">
+                            <div class="col-5">
+                                <table class="table table-sm">
+                                    <tr><td><strong>Total estimado</strong></td><td class="text-end"><strong t-field="doc.sale_price" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td></tr>
+                                </table>
+                            </div>
+                        </div>
+                        <div t-if="doc.notes_customer" class="mt-4">
+                            <strong>Condiciones y observaciones</strong>
+                            <p t-field="doc.notes_customer"/>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+</odoo>
