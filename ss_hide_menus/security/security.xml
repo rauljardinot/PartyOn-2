@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <record id="ss_hide_permissions" model="ir.module.category">
+            <field name="name">Visibilidad a Menus Básicos</field>
+            <field name="sequence">1</field>
+        </record>
+
+        <record id="hide_conversations" model="res.groups">
+            <field name="name">Ver Conversaciones</field>
+            <!--            <field name="category_id" ref="ss_hide_menus.ss_hide_permissions"/>-->
+        </record>
+
+        <record id="hide_calendar" model="res.groups">
+            <field name="name">Ver Calendario</field>
+            <!-- <field name="category_id" ref="dx_hide_menus.dx_permissions"/>-->
+        </record>
+
+<!--        <record id="hide_activity" model="res.groups">-->
+<!--            <field name="name">Ver Actividades</field>-->
+<!--            &lt;!&ndash;          <field name="category_id" ref="ss_hide_menus.ss_permissions"/>&ndash;&gt;-->
+<!--        </record>-->
+
+        <record id="hide_link_tracker" model="res.groups">
+            <field name="name">Ver Link tracker</field>
+            <!--          <field name="category_id" ref="ss_hide_menus.ss_permissions"/>-->
+        </record>
+    </data>
+</odoo>
