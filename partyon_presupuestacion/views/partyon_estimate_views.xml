@@ -34,8 +34,11 @@
                         <group>
                             <field name="quantity" readonly="1"/>
                             <field name="uom_id" readonly="product_id"/>
+                            <field name="tax_ids" widget="many2many_tags"/>
                             <field name="cost_unit" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                             <field name="cost_subtotal" readonly="1"/>
+                            <field name="sale_tax_amount" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="sale_total" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                         </group>
                         <group string="Inventario">
                             <field name="available_quantity" readonly="1"/>
@@ -135,6 +138,8 @@
                                     <field name="margin_amount"/>
                                     <field name="margin_percent" widget="percentage"/>
                                     <field name="sale_price" class="oe_subtotal_footer_separator"/>
+                                    <field name="sale_tax_amount"/>
+                                    <field name="sale_total"/>
                                 </group>
                             </group>
                             <field name="line_ids" readonly="1">

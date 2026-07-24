@@ -162,6 +162,50 @@ class TestPartyonEstimate(TransactionCase):
         self.assertAlmostEqual(estimate.margin_amount, 75.0)
         self.assertAlmostEqual(estimate.margin_percent, 0.75)
 
+    def test_line_taxes_flow_to_totals_pdf_and_sale_order(self):
+        tax_21 = self.env['account.tax'].create({
+            'name': 'IVA 21%',
+            'amount': 21.0,
+            'amount_type': 'percent',
+            'type_tax_use': 'sale',
+        })
+        taxed_product = self.env['product.product'].create({
+            'name': 'Material con IVA',
+            'standard_price': 100.0,
+            'type': 'consu',
+            'uom_id': self.uom_unit.id,
+            'taxes_id': [fields.Command.set(tax_21.ids)],
+        })
+        estimate = self._create_estimate(line_ids=[fields.Command.create({
+            'line_type': 'material',
+            'product_id': taxed_product.id,
+            'name': 'Material con IVA',
+            'manual_quantity': 1.0,
+            'uom_id': self.uom_unit.id,
+            'cost_unit': 100.0,
+        })])
+        line = estimate.line_ids
+        # El IVA se trae del producto y se calcula sobre la venta (130 con el 30% de margen)
+        self.assertEqual(line.tax_ids, tax_21)
+        self.assertAlmostEqual(line.sale_subtotal, 130.0)
+        self.assertAlmostEqual(line.sale_tax_amount, 27.3)
+        self.assertAlmostEqual(line.sale_total, 157.3)
+        self.assertAlmostEqual(estimate.sale_tax_amount, 27.3)
+        self.assertAlmostEqual(estimate.sale_total, 157.3)
+        summary = estimate.get_tax_summary()
+        self.assertEqual(len(summary), 1)
+        self.assertAlmostEqual(summary[0]['base'], 130.0)
+        self.assertAlmostEqual(summary[0]['amount'], 27.3)
+
+        # Modo resumen: la línea única de la cotización recibe el IVA común
+        estimate.action_review()
+        estimate.action_approve()
+        estimate.action_create_sale_order()
+        sale_line = estimate.sale_order_id.order_line
+        self.assertEqual(sale_line.tax_ids, tax_21)
+        self.assertAlmostEqual(sale_line.price_subtotal, 130.0)
+        self.assertAlmostEqual(sale_line.price_total, 157.3)
+
     def test_template_lines_are_copied(self):
         template = self.env['partyon.estimate.template'].create({
             'name': 'Cartel estándar',

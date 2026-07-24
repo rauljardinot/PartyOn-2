@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'PartyOn Presupuestación',
-    'version': '19.0.2.2.0',
+    'version': '19.0.2.3.0',
     'category': 'Sales/Estimations',
     'summary': 'Presupuestación interna de trabajos personalizados para PartyOn',
     'description': """

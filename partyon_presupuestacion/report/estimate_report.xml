@@ -32,7 +32,13 @@
                         <p t-if="doc.description" t-field="doc.description"/>
                         <table class="table table-sm o_main_table mt-4">
                             <thead>
-                                <tr><th>Descripción</th><th class="text-end">Cantidad</th><th class="text-end">Precio</th></tr>
+                                <tr>
+                                    <th>Descripción</th>
+                                    <th class="text-end">Cantidad</th>
+                                    <th class="text-end">Precio</th>
+                                    <th t-if="doc.quote_detail_mode == 'detail'" class="text-end">Impuestos</th>
+                                    <th class="text-end">Total</th>
+                                </tr>
                             </thead>
                             <tbody>
                                 <t t-if="doc.quote_detail_mode == 'detail'">
@@ -40,19 +46,33 @@
                                         <td><span t-field="line.name"/></td>
                                         <td class="text-end"><span t-field="line.quantity"/> <span t-field="line.uom_id"/></td>
                                         <td class="text-end"><span t-field="line.sale_subtotal" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
+                                        <td class="text-end"><span t-field="line.tax_ids"/></td>
+                                        <td class="text-end"><span t-field="line.sale_total" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
                                     </tr>
                                 </t>
                                 <tr t-else="">
                                     <td><span t-field="doc.estimate_name"/></td>
                                     <td class="text-end">1</td>
                                     <td class="text-end"><span t-field="doc.sale_price" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
+                                    <td class="text-end"><span t-field="doc.sale_total" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
                                 </tr>
                             </tbody>
                         </table>
                         <div class="row justify-content-end">
                             <div class="col-5">
                                 <table class="table table-sm">
-                                    <tr><td><strong>Total estimado</strong></td><td class="text-end"><strong t-field="doc.sale_price" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td></tr>
+                                    <tr>
+                                        <td>Base imponible</td>
+                                        <td class="text-end"><span t-field="doc.sale_price" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
+                                    </tr>
+                                    <tr t-foreach="doc.get_tax_summary()" t-as="tax">
+                                        <td><span t-out="tax['name']"/></td>
+                                        <td class="text-end"><span t-out="tax['amount']" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>Total</strong></td>
+                                        <td class="text-end"><strong t-field="doc.sale_total" t-options="{'widget': 'monetary', 'display_currency': doc.currency_id}"/></td>
+                                    </tr>
                                 </table>
                             </div>
                         </div>

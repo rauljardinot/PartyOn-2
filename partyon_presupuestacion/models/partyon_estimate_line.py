@@ -281,6 +281,24 @@ class PartyonEstimateLine(models.Model):
         compute='_compute_sale_values',
         currency_field='currency_id',
     )
+    tax_ids = fields.Many2many(
+        'account.tax',
+        string='Impuestos',
+        compute='_compute_tax_ids',
+        store=True,
+        readonly=False,
+        check_company=True,
+    )
+    sale_tax_amount = fields.Monetary(
+        string='IVA',
+        compute='_compute_sale_tax_values',
+        currency_field='currency_id',
+    )
+    sale_total = fields.Monetary(
+        string='Total con IVA',
+        compute='_compute_sale_tax_values',
+        currency_field='currency_id',
+    )
 
     @api.depends('product_id', 'quantity')
     def _compute_stock_quantities(self):
@@ -309,3 +327,38 @@ class PartyonEstimateLine(models.Model):
             line.sale_subtotal = sale_subtotal
             line.sale_unit = sale_subtotal / line.quantity if line.quantity else 0.0
             line.margin_amount = sale_subtotal - line.cost_subtotal
+
+    @api.depends('product_id', 'estimate_id.partner_id', 'company_id')
+    def _compute_tax_ids(self):
+        fiscal_position_model = self.env['account.fiscal.position']
+        for line in self:
+            taxes = (
+                line.product_id.taxes_id._filter_taxes_by_company(line.company_id)
+                if line.product_id else False
+            )
+            if not taxes:
+                line.tax_ids = False
+                continue
+            fiscal_position = fiscal_position_model._get_fiscal_position(
+                line.estimate_id.partner_id
+            )
+            line.tax_ids = fiscal_position.map_tax(taxes)
+
+    @api.depends('sale_subtotal', 'tax_ids', 'estimate_id.partner_id')
+    def _compute_sale_tax_values(self):
+        for line in self:
+            if not line.tax_ids or not line.sale_subtotal:
+                line.sale_tax_amount = 0.0
+                line.sale_total = line.sale_subtotal
+                continue
+            res = line.tax_ids.compute_all(
+                line.sale_subtotal,
+                currency=line.currency_id,
+                quantity=1.0,
+                product=line.product_id,
+                partner=line.estimate_id.partner_id,
+            )
+            line.sale_tax_amount = sum(
+                tax_values.get('amount', 0.0) for tax_values in res.get('taxes', [])
+            )
+            line.sale_total = res['total_included']

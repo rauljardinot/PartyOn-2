@@ -168,6 +168,16 @@ class PartyonEstimate(models.Model):
         string='Margen sobre coste', compute='_compute_sale_price', store=True,
         help='Beneficio dividido entre el coste total.',
     )
+    sale_tax_amount = fields.Monetary(
+        string='IVA',
+        compute='_compute_sale_tax_totals',
+        currency_field='currency_id',
+    )
+    sale_total = fields.Monetary(
+        string='Total con IVA',
+        compute='_compute_sale_tax_totals',
+        currency_field='currency_id',
+    )
     quote_detail_mode = fields.Selection(
         [('summary', 'Una línea resumida'), ('detail', 'Desglose de líneas')],
         string='Presentación al cliente',
@@ -214,6 +224,42 @@ class PartyonEstimate(models.Model):
                 estimate.margin_amount / estimate.subtotal_cost
                 if estimate.subtotal_cost else 0.0
             )
+
+    @api.depends('line_ids.sale_tax_amount', 'line_ids.sale_total')
+    def _compute_sale_tax_totals(self):
+        for estimate in self:
+            estimate.sale_tax_amount = sum(estimate.line_ids.mapped('sale_tax_amount'))
+            estimate.sale_total = sum(estimate.line_ids.mapped('sale_total'))
+
+    def get_tax_summary(self):
+        """Desglose del IVA del presupuesto agrupado por impuesto (para el PDF).
+
+        Devuelve una lista de dicts {'name', 'base', 'amount'} ordenada por
+        la secuencia de los impuestos.
+        """
+        self.ensure_one()
+        summary = {}
+        for line in self.line_ids:
+            if not line.tax_ids or not line.sale_subtotal:
+                continue
+            res = line.tax_ids.compute_all(
+                line.sale_subtotal,
+                currency=line.currency_id,
+                quantity=1.0,
+                product=line.product_id,
+                partner=self.partner_id,
+            )
+            for tax_values in res.get('taxes', []):
+                entry = summary.setdefault(tax_values['id'], {
+                    'name': tax_values['name'],
+                    'base': 0.0,
+                    'amount': 0.0,
+                })
+                entry['base'] += tax_values.get('base', 0.0)
+                entry['amount'] += tax_values.get('amount', 0.0)
+        taxes = self.env['account.tax'].browse(summary.keys())
+        taxes = taxes.sorted(key=lambda tax: (tax.sequence, tax.id))
+        return [summary[tax.id] for tax in taxes]
 
     @api.constrains('margin_value', 'manual_sale_price', 'margin_type')
     def _check_margin_values(self):
@@ -301,10 +347,22 @@ class PartyonEstimate(models.Model):
             'quote_detail_mode': self.template_id.quote_detail_mode,
         })
 
+    def _get_common_line_taxes(self):
+        """Impuestos si TODAS las líneas comparten el mismo conjunto; vacío en
+        caso contrario (o si ninguna línea tiene impuestos)."""
+        self.ensure_one()
+        common_taxes = None
+        for line in self.line_ids:
+            if common_taxes is None:
+                common_taxes = line.tax_ids
+            elif line.tax_ids != common_taxes:
+                return self.env['account.tax']
+        return common_taxes or self.env['account.tax']
+
     def _prepare_summary_sale_line(self):
         self.ensure_one()
         product = self.env.ref('partyon_presupuestacion.product_partyon_service')
-        return {
+        values = {
             'product_id': product.id,
             'name': self.estimate_name,
             'product_uom_qty': 1.0,
@@ -312,6 +370,10 @@ class PartyonEstimate(models.Model):
             'price_unit': self.sale_price,
             'purchase_price': self.subtotal_cost,
         }
+        common_taxes = self._get_common_line_taxes()
+        if common_taxes:
+            values['tax_ids'] = [fields.Command.set(common_taxes.ids)]
+        return values
 
     def _prepare_detailed_sale_lines(self):
         self.ensure_one()
@@ -326,6 +388,7 @@ class PartyonEstimate(models.Model):
                 'product_uom_id': line.uom_id.id or product.uom_id.id,
                 'price_unit': line.sale_unit,
                 'purchase_price': line.cost_unit,
+                'tax_ids': [fields.Command.set(line.tax_ids.ids)],
             })
         return values
 
