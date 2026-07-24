@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <record id="mail.menu_root_discuss" model="ir.ui.menu">
+            <field name="group_ids"
+                   eval="[(6, 0, [ref('ss_hide_menus.hide_conversations')]),(4, ref('base.group_system'))]"/>
+        </record>
+
+        <record id="calendar.mail_menu_calendar" model="ir.ui.menu">
+            <field name="group_ids"
+                   eval="[(6, 0, [ref('ss_hide_menus.hide_calendar')]),(4, ref('base.group_system'))]"/>
+        </record>
+<!--             El módulo este de actívity no aparece en el -->
+<!--        <record id="rt_activity_mgmt.mail_activity_menu" model="ir.ui.menu">-->
+<!--            <field name="group_ids"-->
+<!--                   eval="[(6, 0, [ref('ss_hide_menus.hide_activity')]),(4, ref('base.group_system'))]"/>-->
+<!--        </record>-->
+
+<!--         En los metadatos (debug >> Metadatos) del formulario de menú en Odoo (Tecnico >> Interfaz de usuario >> E. Menu )-->
+<!--         Vi que el módulo del que partia era utm -->
+<!--        <record id="utm.menu link tracker_root" model="ir.ui.menu">-->
+<!--            <field name="group_ids"-->
+<!--                   eval="[(6, 0, [ref('ss_hide_menus.hide_link_tracker')]),(4, ref('base.group_system'))]"/>-->
+<!--        </record>-->
+    </data>
+</odoo>

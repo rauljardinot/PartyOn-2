@@ -5,7 +5,7 @@
         <field name="description">Módulos de gestión PartyOn</field>
         <field name="sequence">100</field>
     </record>
-    <record id="res_groups_privilege_partyon" model="res.groups.privilege">
+        <record id="res_groups_privilege_partyon" model="res.groups.privilege">
         <field name="name">Presupuestación PartyOn</field>
         <field name="sequence">100</field>
         <field name="category_id" ref="module_category_partyon"/>

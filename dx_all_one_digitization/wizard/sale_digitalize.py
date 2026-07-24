@@ -74,13 +74,19 @@ class SaleDigitalize(models.TransientModel):
 
             extracted_values = {
                 'client_order_ref': str(ref),
-                'date_order': sale_date,
-                'validity_date': due_date,
+                #'date_order': sale_date,
+                #'validity_date': due_date,
                 'order_line': line_ids,
                 'note': response_dict.get('notes'),
             }
             if partner_id:
                 extracted_values['partner_id'] = partner_id.id
+            if ref:
+                extracted_values['client_order_ref'] = str(ref)
+            if sale_date:
+                extracted_values['date_order'] = sale_date
+            if due_date:
+                extracted_values['validity_date'] = due_date
 
             sale_order.write(extracted_values)
             return sale_order

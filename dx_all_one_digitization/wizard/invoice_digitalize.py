@@ -79,9 +79,9 @@ class InvoiceDigitalize(models.TransientModel):
                 invoice_date_due = False
 
             extracted_values = {
-                'ref': str(ref),
-                'invoice_date': invoice_date,
-                'invoice_date_due': invoice_date_due,
+                #'ref': str(ref),
+                #'invoice_date': invoice_date,
+                #'invoice_date_due': invoice_date_due,
                 'payment_reference': response_dict.get('payment_reference') or False,
                 'invoice_line_ids': line_ids,
                 'narration': response_dict.get('notes'),
@@ -90,6 +90,12 @@ class InvoiceDigitalize(models.TransientModel):
             }
             if currency_id:
                 extracted_values['currency_id'] = currency_id.id
+            if ref:
+                extracted_values['ref'] = str(ref)
+            if invoice_date:
+                extracted_values['invoice_date'] = invoice_date
+            if invoice_date_due:
+                extracted_values['invoice_date_due'] = invoice_date_due
             invoice.write(extracted_values)
             moves.append(invoice)
         action_vals = {
