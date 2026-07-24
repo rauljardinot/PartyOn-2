@@ -22,6 +22,31 @@ from pypdf import PdfReader
 DEFAULT_OLG_ENDPOINT = 'https://olg.api.odoo.com'
 _logger = logging.getLogger(__name__)
 
+
+class LLMClient:
+    """Cliente OpenRouter compatible con Python 3.7"""
+
+    def __init__(self, api_key, base_url="https://openrouter.ai/api/v1"):
+        self.api_key = api_key
+        self.base_url = base_url
+
+    def chat(self, model, messages, **kwargs):
+        headers = {
+            "Authorization": "Bearer %s" % self.api_key,
+            "Content-Type": "application/json",
+        }
+        payload = {"model": model, "messages": messages}
+        payload.update(kwargs)
+        resp = requests.post(
+            "%s/chat/completions" % self.base_url,
+            headers=headers,
+            json=payload,
+            timeout=120
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+
 def _preprocess_image(image):
     image_array = np.asarray(image)
     channels = image_array.shape[-1] if image_array.ndim == 3 else 1
@@ -41,7 +66,8 @@ class ResConfigSettings(models.TransientModel):
         ('odoo_ai', 'Odoo AI'),
         ('openai', 'OpenAI'),
         ('anthropic', 'Anthropic'),
-        ('gemini', 'Gemini')
+        ('gemini', 'Gemini'),
+        ('openrouter', 'OpenRouter'),
     ], string="AI Provider", default='odoo_ai', config_parameter='dx_all_one_digitization.ai_provider')
 
     api_key = fields.Char(string="API Key", config_parameter='dx_all_one_digitization.api_key')
@@ -67,7 +93,28 @@ class ResConfigSettings(models.TransientModel):
                     raise UserError(_("Sorry, we could not generate a response. Please try again later."))
             except Exception as e:
                 raise UserError(_("Oops, it looks like our AI is unreachable!." + str(e))   )
-        
+
+        if ai_provider == 'openrouter':
+            api_key = self.env['ir.config_parameter'].sudo().get_param('dx_all_one_digitization.api_key')
+            if not api_key:
+                raise UserError(_("API Key is missing. Please configure it in settings."))
+
+            model_name = self.env['ir.config_parameter'].sudo().get_param('dx_all_one_digitization.model_name')
+
+            messages = conversation_history or []
+            messages.append({"role": "user", "content": prompt})
+
+            try:
+                client = LLMClient(api_key=api_key)
+                response = client.chat(
+                    model=model_name or 'openai/gpt-4o',
+                    messages=messages,
+                    temperature=0.0,
+                )
+                return response['choices'][0]['message']['content']
+            except Exception as e:
+                raise UserError(_("AI Provider Error: %s") % str(e))
+
         # LiteLLM Logic
         if not completion:
             raise UserError(_("LiteLLM library is not installed. Please install it to use external providers."))

@@ -84,14 +84,22 @@ class PurchaseDigitalize(models.TransientModel):
                 sale_date = False
 
             extracted_values = {
-                'origin': str(ref),
-                'date_order': sale_date,
-                'date_planned': due_date,
+                 #'origin': str(ref),
+                 #'date_order': sale_date,
+                 #'date_planned': due_date,
                 'order_line': line_ids,
                 'notes': response_dict.get('notes'),
             }
+
+            # Meto el condicional para que no explote ccuando no encuentra la fecha
             if partner_id:
                 extracted_values['partner_id'] = partner_id.id
+            if ref:
+                extracted_values['origin'] = str(ref)
+            if sale_date:
+                extracted_values['date_order'] = sale_date
+            if due_date:
+                extracted_values['date_planned'] = due_date
 
 
             purchase_order.write(extracted_values)
