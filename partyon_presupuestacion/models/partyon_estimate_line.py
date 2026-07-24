@@ -59,12 +59,13 @@ class PartyonEstimateCostMixin(models.AbstractModel):
     dimension_uom_id = fields.Many2one(
         'uom.uom',
         string='Unidad de las medidas',
+        domain=[('name', 'in', ['cm', 'm'])], # Para limitar las unidades de las dimensiones, lo suyo es en la vista pero no se actualiza
         default=lambda self: self.env.ref('uom.product_uom_cm'),
         help='Unidad utilizada para ancho, largo y profundidad.',
     )
-    width = fields.Float(string='Ancho (cm)')
-    height = fields.Float(string='Largo (cm)')
-    depth = fields.Float(string='Profundidad (cm)')
+    width = fields.Float(string='Ancho')
+    height = fields.Float(string='Largo')
+    depth = fields.Float(string='Profundidad')
     hours = fields.Float(string='Horas')
     waste_percent = fields.Float(
         string='Merma (%)',

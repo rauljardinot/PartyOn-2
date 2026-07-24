@@ -21,15 +21,15 @@
                     </group>
                     <group string="Medidas" invisible="calculation_method not in ('area', 'volume')">
                         <group>
+                            <field name="dimension_uom_id" options="{'no_create': True}" help="Unidad de medida de los valores que se calculan"/>
                             <field name="width"/>
                             <field name="height"/>
+                            <field name="depth" invisible="calculation_method != 'volume'"/>
                         </group>
                         <group>
-                            <field name="depth" invisible="calculation_method != 'volume'"/>
                             <field name="waste_percent"/>
                         </group>
                     </group>
-                    <field name="dimension_uom_id" invisible="1"/>
                     <group string="Resultado">
                         <group>
                             <field name="quantity" readonly="1"/>

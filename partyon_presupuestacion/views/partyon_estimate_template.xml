@@ -21,7 +21,11 @@
                     </group>
                     <group string="Medidas" invisible="calculation_method not in ('area', 'volume')">
                         <group>
-                            <field name="dimension_uom_id" help="Unidad de medida de los valores que se calculan"/>
+                            <field name="dimension_uom_id"
+                                   domain="[('name', 'in', ['cm', 'm'])]"
+                                   options="{'no_create': True}"
+                                   help="Unidad de medida de los valores que se calculan"
+                            />
                             <field name="width"/>
                             <field name="height"/>
                             <field name="depth" invisible="calculation_method != 'volume'"/>
