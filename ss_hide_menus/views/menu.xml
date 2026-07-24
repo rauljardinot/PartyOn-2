@@ -18,9 +18,9 @@
 
 <!--         En los metadatos (debug >> Metadatos) del formulario de menú en Odoo (Tecnico >> Interfaz de usuario >> E. Menu )-->
 <!--         Vi que el módulo del que partia era utm -->
-        <record id="utm.menu link tracker_root" model="ir.ui.menu">
-            <field name="group_ids"
-                   eval="[(6, 0, [ref('ss_hide_menus.hide_link_tracker')]),(4, ref('base.group_system'))]"/>
-        </record>
+<!--        <record id="utm.menu link tracker_root" model="ir.ui.menu">-->
+<!--            <field name="group_ids"-->
+<!--                   eval="[(6, 0, [ref('ss_hide_menus.hide_link_tracker')]),(4, ref('base.group_system'))]"/>-->
+<!--        </record>-->
     </data>
 </odoo>

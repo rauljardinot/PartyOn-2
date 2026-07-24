@@ -1,29 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data noupdate="0">
-        <record id="ss_hide_permissions" model="ir.module.category">
-            <field name="name">Visibilidad a Menus Básicos</field>
-            <field name="sequence">1</field>
-        </record>
+    <!--  CATEGORÍA  -->
+    <record id="ss_hide_permissions" model="ir.module.category">
+        <field name="name">Visibilidad a Menus Básicos</field>
+        <field name="sequence">200</field>
+        <field name="description">Visibilidad custom</field>
+    </record>
 
-        <record id="hide_conversations" model="res.groups">
-            <field name="name">Ver Conversaciones</field>
-            <!--            <field name="category_id" ref="ss_hide_menus.ss_hide_permissions"/>-->
-        </record>
+    <!--  CONVERSACIONES-->
+    <record id="res_groups_privilege_ss_hide_conversation" model="res.groups.privilege">
+        <field name="name">Visibilidad Conversaciones</field>
+        <field name="sequence">100</field>
+        <field name="category_id" ref="ss_hide_permissions"/>
+    </record>
+    <record id="hide_conversations" model="res.groups">
+        <field name="name">Ver Conversaciones</field>
+        <field name="privilege_id" ref="res_groups_privilege_ss_hide_conversation"/>
+<!--        <field name="implied_ids" eval="[Command.link(ref('group_partyon_user'))]"/>-->
+    </record>
 
-        <record id="hide_calendar" model="res.groups">
-            <field name="name">Ver Calendario</field>
-            <!-- <field name="category_id" ref="dx_hide_menus.dx_permissions"/>-->
-        </record>
+    <!--    CALENDARIO-->
+    <record id="res_groups_privilege_ss_hide_calendar" model="res.groups.privilege">
+        <field name="name">Visibilidad Calendario</field>
+        <field name="sequence">120</field>
+        <field name="category_id" ref="ss_hide_permissions"/>
+    </record>
+    <record id="hide_calendar" model="res.groups">
+        <field name="name">Ver Calendario</field>
+        <field name="privilege_id" ref="res_groups_privilege_ss_hide_calendar"/>
+    </record>
 
-<!--        <record id="hide_activity" model="res.groups">-->
-<!--            <field name="name">Ver Actividades</field>-->
-<!--            &lt;!&ndash;          <field name="category_id" ref="ss_hide_menus.ss_permissions"/>&ndash;&gt;-->
-<!--        </record>-->
+    <!--        <record id="hide_activity" model="res.groups">-->
+    <!--            <field name="name">Ver Actividades</field>-->
+    <!--            &lt;!&ndash;          <field name="category_id" ref="ss_hide_menus.ss_permissions"/>&ndash;&gt;-->
+    <!--        </record>-->
 
-        <record id="hide_link_tracker" model="res.groups">
-            <field name="name">Ver Link tracker</field>
-            <!--          <field name="category_id" ref="ss_hide_menus.ss_permissions"/>-->
-        </record>
-    </data>
+<!--    LO COMENTO POR QUE NO RECONOCÍA AHORA EN LA DB EL MODULO ESTE -->
+<!--    <record id="hide_link_tracker" model="res.groups">-->
+<!--        <field name="name">Ver Link tracker</field>-->
+<!--        <field name="privilege_id" ref="res_groups_privilege_ss_hide_menus"/>-->
+<!--    </record>-->
 </odoo>
