@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Reactivar las unidades de medida que Odoo 19 entrega archivadas de
+         fábrica y que la presupuestación necesita:
+         - cm: unidad en la que se introducen ancho, largo y profundidad.
+         - m³: unidad de consumo de productos presupuestados por volumen.
+         Se usa <function> en lugar de <record> porque los ir.model.data del
+         módulo uom son noupdate=1, y un <record> se omitiría al actualizar
+         este módulo (-u). -->
+    <function model="uom.uom" name="write">
+        <value eval="[ref('uom.product_uom_cubic_meter'), ref('uom.product_uom_cm')]"/>
+        <value eval="{'active': True}"/>
+    </function>
+</odoo>
