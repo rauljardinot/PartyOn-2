@@ -62,9 +62,9 @@ class PartyonEstimateCostMixin(models.AbstractModel):
         default=lambda self: self.env.ref('uom.product_uom_cm'),
         help='Unidad utilizada para ancho, largo y profundidad.',
     )
-    width = fields.Float(string='Ancho')
-    height = fields.Float(string='Largo')
-    depth = fields.Float(string='Profundidad')
+    width = fields.Float(string='Ancho (cm)')
+    height = fields.Float(string='Largo (cm)')
+    depth = fields.Float(string='Profundidad (cm)')
     hours = fields.Float(string='Horas')
     waste_percent = fields.Float(
         string='Merma (%)',
@@ -111,13 +111,6 @@ class PartyonEstimateCostMixin(models.AbstractModel):
             (method for method, reference in references if uom._has_common_reference(reference)),
             'manual',
         )
-
-    def _get_dimension_uom_from_product_uom(self, product_uom):
-        square_foot = self.env.ref('uom.product_uom_square_foot')
-        cubic_foot = self.env.ref('uom.product_uom_cubic_foot')
-        if product_uom in (square_foot, cubic_foot):
-            return self.env.ref('uom.product_uom_foot')
-        return self.env.ref('uom.product_uom_meter')
 
     def _dimensions_in_meters(self):
         self.ensure_one()
@@ -183,10 +176,6 @@ class PartyonEstimateCostMixin(models.AbstractModel):
             line.uom_id = line.product_id.uom_id
             line.cost_unit = line.product_id.standard_price
             line.calculation_method = line._get_calculation_method_from_uom(line.product_id.uom_id)
-            if line.calculation_method in ('area', 'volume'):
-                line.dimension_uom_id = line._get_dimension_uom_from_product_uom(
-                    line.product_id.uom_id
-                )
 
     @api.onchange('calculation_method')
     def _onchange_calculation_method(self):
@@ -202,8 +191,6 @@ class PartyonEstimateCostMixin(models.AbstractModel):
                 line.cost_unit = line.product_id.standard_price
             else:
                 line.uom_id = reference_uom
-            if line.calculation_method in ('area', 'volume'):
-                line.dimension_uom_id = line._get_dimension_uom_from_product_uom(line.uom_id)
 
     @api.constrains(
         'calculation_method', 'manual_quantity', 'pieces', 'width', 'height',

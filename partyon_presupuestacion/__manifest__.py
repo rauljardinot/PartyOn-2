@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'PartyOn Presupuestación',
-    'version': '19.0.2.1.0',
+    'version': '19.0.2.2.0',
     'category': 'Sales/Estimations',
     'summary': 'Presupuestación interna de trabajos personalizados para PartyOn',
     'description': """
@@ -23,6 +23,7 @@
         'security/partyon_security.xml',
         'security/ir.model.access.csv',
         'data/sequence_data.xml',
+        'data/uom_data.xml',
         'views/partyon_estimate_views.xml',
         'views/partyon_estimate_template.xml',
         'views/sale_order_view.xml',

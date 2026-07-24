@@ -115,8 +115,8 @@
                                     <field name="quantity" readonly="1"/>
                                     <field name="uom_id" readonly="1"/>
                                     <field name="cost_subtotal" sum="Coste total"/>
-                                    <field name="available_quantity" optional="show" readonly="1"/>
-                                    <field name="remaining_quantity" optional="show" readonly="1"/>
+                                    <field name="available_quantity" optional="hide" readonly="1"/>
+                                    <field name="remaining_quantity" optional="hide" readonly="1"/>
                                     <field name="shortage_quantity" optional="hide" readonly="1" decoration-danger="shortage_quantity &gt; 0"/>
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>

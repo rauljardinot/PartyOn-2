@@ -4,7 +4,7 @@
     'summary': "Module to hide the menus to certain users",
 
     'description': """
-Module to hide the menus to certain users
+ Module to hide the menus to certain users
     """,
 
     'author': "Simplicia Solutions",

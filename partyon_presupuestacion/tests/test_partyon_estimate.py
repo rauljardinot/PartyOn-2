@@ -120,7 +120,7 @@ class TestPartyonEstimate(TransactionCase):
         onchange_line._onchange_product_id()
         self.assertEqual(onchange_line.calculation_method, 'area')
         self.assertEqual(onchange_line.uom_id, self.uom_square_meter)
-        self.assertEqual(onchange_line.dimension_uom_id, self.uom_meter)
+        self.assertEqual(onchange_line.dimension_uom_id, self.uom_cm)
         self.assertEqual(onchange_line.cost_unit, 10.0)
 
         estimate = self._create_estimate(line_ids=[fields.Command.create({
