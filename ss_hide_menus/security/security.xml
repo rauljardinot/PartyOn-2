@@ -30,14 +30,21 @@
         <field name="privilege_id" ref="res_groups_privilege_ss_hide_calendar"/>
     </record>
 
+    <!-- LINK TRACKER -->
+       <record id="res_groups_privilege_ss_hide_link_tracker" model="res.groups.privilege">
+        <field name="name">Visibilidad Link Tracker</field>
+        <field name="sequence">130</field>
+        <field name="category_id" ref="ss_hide_permissions"/>
+    </record>
+    <record id="hide_link_tracker" model="res.groups">
+        <field name="name">Ver Link tracker</field>
+        <field name="privilege_id" ref="res_groups_privilege_ss_hide_link_tracker"/>
+    </record>
+
+
+
     <!--        <record id="hide_activity" model="res.groups">-->
     <!--            <field name="name">Ver Actividades</field>-->
     <!--            &lt;!&ndash;          <field name="category_id" ref="ss_hide_menus.ss_permissions"/>&ndash;&gt;-->
     <!--        </record>-->
-
-<!--    LO COMENTO POR QUE NO RECONOCÍA AHORA EN LA DB EL MODULO ESTE -->
-<!--    <record id="hide_link_tracker" model="res.groups">-->
-<!--        <field name="name">Ver Link tracker</field>-->
-<!--        <field name="privilege_id" ref="res_groups_privilege_ss_hide_menus"/>-->
-<!--    </record>-->
 </odoo>
