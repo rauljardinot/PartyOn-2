@@ -69,7 +69,7 @@ class ResConfigSettings(models.TransientModel):
         ('anthropic', 'Anthropic'),
         ('gemini', 'Gemini'),
         ('openrouter', 'OpenRouter'),
-        ('opencode', 'OpenCode Zen'),
+        ('opencode', 'OpenCode GO'),
     ], string="AI Provider", default='odoo_ai', config_parameter='dx_all_one_digitization.ai_provider')
 
     api_key = fields.Char(string="API Key", config_parameter='dx_all_one_digitization.api_key')
