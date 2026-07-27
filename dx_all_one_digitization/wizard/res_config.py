@@ -23,8 +23,9 @@ DEFAULT_OLG_ENDPOINT = 'https://olg.api.odoo.com'
 _logger = logging.getLogger(__name__)
 
 
-class LLMClient:
-    """Cliente OpenRouter compatible con Python 3.7"""
+class   LLMClient:
+    """Cliente para APIs compatibles con OpenAI chat/completions (OpenRouter, OpenCode Zen, ...).
+    Compatible con Python 3.7"""
 
     def __init__(self, api_key, base_url="https://openrouter.ai/api/v1"):
         self.api_key = api_key
@@ -68,6 +69,7 @@ class ResConfigSettings(models.TransientModel):
         ('anthropic', 'Anthropic'),
         ('gemini', 'Gemini'),
         ('openrouter', 'OpenRouter'),
+        ('opencode', 'OpenCode Zen'),
     ], string="AI Provider", default='odoo_ai', config_parameter='dx_all_one_digitization.ai_provider')
 
     api_key = fields.Char(string="API Key", config_parameter='dx_all_one_digitization.api_key')
@@ -108,6 +110,29 @@ class ResConfigSettings(models.TransientModel):
                 client = LLMClient(api_key=api_key)
                 response = client.chat(
                     model=model_name or 'openai/gpt-4o',
+                    messages=messages,
+                    temperature=0.0,
+                )
+                return response['choices'][0]['message']['content']
+            except Exception as e:
+                raise UserError(_("AI Provider Error: %s") % str(e))
+
+        if ai_provider == 'opencode':
+            api_key = self.env['ir.config_parameter'].sudo().get_param('dx_all_one_digitization.api_key')
+            if not api_key:
+                raise UserError(_("API Key is missing. Please configure it in settings."))
+
+            model_name = self.env['ir.config_parameter'].sudo().get_param('dx_all_one_digitization.model_name')
+            if not model_name:
+                raise UserError(_("Model Name is missing. Please configure it in settings."))
+
+            messages = conversation_history or []
+            messages.append({"role": "user", "content": prompt})
+
+            try:
+                client = LLMClient(api_key=api_key, base_url="https://opencode.ai/zen/go/v1")
+                response = client.chat(
+                    model=model_name,
                     messages=messages,
                     temperature=0.0,
                 )
