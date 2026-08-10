@@ -44,7 +44,7 @@
                         <span>Presupuesto </span>
                         <span t-field="doc.name"/>
                     </t>
-                    <div class="page">
+                    <div class="page partyon_estimate_page">
                         <div class="row mt-3 mb-4">
                             <div class="col-5 ms-auto">
                                 <div><strong>Fecha:</strong> <span t-field="doc.date"/></div>
