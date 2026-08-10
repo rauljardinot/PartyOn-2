@@ -25,8 +25,8 @@
         <xpath expr="//t[@t-call='web.address_layout']" position="replace">
             <div class="oe_structure"/>
         </xpath>
-        <xpath expr="//div[contains(@t-attf-class, 'article')]" position="attributes">
-            <attribute name="t-attf-class" add="partyon_estimate_article" separator=" "/>
+        <xpath expr="//h2[@t-out='layout_document_title']" position="attributes">
+            <attribute name="class" add="partyon_estimate_document_title" separator=" "/>
         </xpath>
     </template>
 
