@@ -29,6 +29,8 @@
         'views/sale_order_view.xml',
         'views/estimate_category_views.xml',
         'views/menu_views.xml',
+        'views/product_template_views.xml',
+        'views/res_config_views.xml',
         'report/estimate_report.xml',
     ],
     'installable': True,

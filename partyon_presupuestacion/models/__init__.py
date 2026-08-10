@@ -4,3 +4,5 @@ from . import partyon_estimate_line
 from . import partyon_estimate_template
 from . import sale_order
 from . import estimate_category
+from . import product_template
+from . import res_config_settings

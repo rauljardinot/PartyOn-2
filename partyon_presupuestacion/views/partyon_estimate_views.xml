@@ -9,20 +9,25 @@
                     <group>
                         <group string="Recurso">
                             <field name="line_type"/>
-                            <field name="product_id"/>
+                            <field name="product_id" options="{'no_create': True}"/>
                             <field name="name"/>
                         </group>
                         <group string="Cálculo">
                             <field name="calculation_method" readonly="product_id"/>
                             <field name="manual_quantity" invisible="calculation_method != 'manual'"/>
+                            <field name="time_unit_sel" invisible="calculation_method != 'hours'"/>
                             <field name="hours" invisible="calculation_method != 'hours'"/>
                             <field name="pieces" invisible="calculation_method not in ('area', 'volume', 'hours')"/>
+                            <separator string="Tiempo de Máquina" invisible="not product_id or not product_id.need_machine_cost"/>
+                            <field name="machine_time_total" invisible="not product_id or not product_id.need_machine_cost"/>
                         </group>
+
                     </group>
-                    <group string="Medidas" invisible="calculation_method not in ('area', 'volume')">
+                    <group string="Medidas" invisible="calculation_method not in ('area', 'volume', 'length')">
                         <group>
-                            <field name="dimension_uom_id" options="{'no_create': True}" help="Unidad de medida de los valores que se calculan"/>
-                            <field name="width"/>
+                            <field name="dimension_uom_id" options="{'no_create': True}"
+                                   help="Unidad de medida de los valores que se calculan"/>
+                            <field name="width" invisible="calculation_method != 'area'"/>
                             <field name="height"/>
                             <field name="depth" invisible="calculation_method != 'volume'"/>
                         </group>
@@ -37,8 +42,10 @@
                             <field name="tax_ids" widget="many2many_tags"/>
                             <field name="cost_unit" widget="monetary" options="{'currency_field': 'currency_id'}"/>
                             <field name="cost_subtotal" readonly="1"/>
-                            <field name="sale_tax_amount" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}"/>
-                            <field name="sale_total" readonly="1" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="sale_tax_amount" readonly="1" widget="monetary"
+                                   options="{'currency_field': 'currency_id'}"/>
+                            <field name="sale_total" readonly="1" widget="monetary"
+                                   options="{'currency_field': 'currency_id'}"/>
                         </group>
                         <group string="Inventario">
                             <field name="available_quantity" readonly="1"/>
@@ -58,25 +65,38 @@
         <field name="arch" type="xml">
             <form string="Presupuesto interno">
                 <header>
-                    <button name="action_review" string="Enviar a revisión" type="object" class="btn-primary" invisible="state != 'draft'"/>
-                    <button name="action_approve" string="Aprobar" type="object" class="btn-primary" invisible="state != 'review'" groups="partyon_presupuestacion.group_partyon_manager"/>
-                    <button name="action_create_sale_order" string="Crear cotización" type="object" class="btn-primary" invisible="state != 'approved'"/>
-                    <button name="action_customer_approve" string="Cliente acepta" type="object" class="btn-primary" invisible="state != 'quoted'"/>
-                    <button name="action_new_version" string="Nueva versión" type="object" invisible="state == 'cancel'"/>
-                    <button name="action_cancel" string="Cancelar" type="object" invisible="state in ('cancel', 'customer_approved')"/>
-                    <button name="action_draft" string="Volver a borrador" type="object" invisible="state not in ('cancel', 'review')"/>
-                    <field name="state" widget="statusbar" statusbar_visible="draft,review,approved,quoted,customer_approved"/>
+                    <button name="action_review" string="Enviar a revisión" type="object" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve" string="Aprobar" type="object" class="btn-primary"
+                            invisible="state != 'review'" groups="partyon_presupuestacion.group_partyon_manager"/>
+                    <button name="action_create_sale_order" string="Crear cotización" type="object" class="btn-primary"
+                            invisible="state != 'approved'"/>
+                    <button name="action_customer_approve" string="Cliente acepta" type="object" class="btn-primary"
+                            invisible="state != 'quoted'"/>
+                    <button name="action_new_version" string="Nueva versión" type="object"
+                            invisible="state == 'cancel'"/>
+                    <button name="action_cancel" string="Cancelar" type="object"
+                            invisible="state in ('cancel', 'customer_approved')"/>
+                    <button name="action_draft" string="Volver a borrador" type="object"
+                            invisible="state not in ('cancel', 'review')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,review,approved,quoted,customer_approved"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_view_sale_order" type="object" class="oe_stat_button" icon="fa-shopping-cart" invisible="not sale_order_id">
+                        <button name="action_view_sale_order" type="object" class="oe_stat_button"
+                                icon="fa-shopping-cart" invisible="not sale_order_id">
                             <field name="sale_order_id" widget="statinfo" string="Cotización"/>
                         </button>
                     </div>
                     <div class="oe_title">
                         <label for="name"/>
-                        <h1><field name="name"/></h1>
-                        <h2><field name="estimate_name" placeholder="Nombre del trabajo"/></h2>
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                        <h2>
+                            <field name="estimate_name" placeholder="Nombre del trabajo"/>
+                        </h2>
                     </div>
                     <group>
                         <group>
@@ -96,11 +116,14 @@
                         </group>
                     </group>
                     <group>
-                        <field name="description" placeholder="Qué se fabricará, acabado, instalación y alcance..." readonly="state != 'draft'"/>
+                        <field name="description" placeholder="Qué se fabricará, acabado, instalación y alcance..."
+                               readonly="state != 'draft'"/>
                     </group>
                     <group string="Plantilla" invisible="state != 'draft'">
                         <field name="template_id"/>
-                        <button name="action_apply_template" string="Aplicar plantilla" type="object" class="btn-secondary" invisible="not template_id" confirm="Se reemplazarán las líneas actuales por una copia de la plantilla."/>
+                        <button name="action_apply_template" string="Aplicar plantilla" type="object"
+                                class="btn-secondary" invisible="not template_id"
+                                confirm="Se reemplazarán las líneas actuales por una copia de la plantilla."/>
                     </group>
                     <notebook>
                         <page string="Costes" name="cost_lines">
@@ -120,7 +143,8 @@
                                     <field name="cost_subtotal" sum="Coste total"/>
                                     <field name="available_quantity" optional="hide" readonly="1"/>
                                     <field name="remaining_quantity" optional="hide" readonly="1"/>
-                                    <field name="shortage_quantity" optional="hide" readonly="1" decoration-danger="shortage_quantity &gt; 0"/>
+                                    <field name="shortage_quantity" optional="hide" readonly="1"
+                                           decoration-danger="shortage_quantity &gt; 0"/>
                                     <field name="currency_id" column_invisible="1"/>
                                 </list>
                             </field>
@@ -129,8 +153,10 @@
                             <group>
                                 <group string="Configuración">
                                     <field name="margin_type" readonly="state != 'draft'"/>
-                                    <field name="margin_value" invisible="margin_type == 'manual'" readonly="state != 'draft'"/>
-                                    <field name="manual_sale_price" invisible="margin_type != 'manual'" readonly="state != 'draft'"/>
+                                    <field name="margin_value" invisible="margin_type == 'manual'"
+                                           readonly="state != 'draft'"/>
+                                    <field name="manual_sale_price" invisible="margin_type != 'manual'"
+                                           readonly="state != 'draft'"/>
                                     <field name="quote_detail_mode" readonly="state != 'draft'"/>
                                 </group>
                                 <group string="Resultado">
@@ -172,7 +198,8 @@
                         </page>
                         <page string="Notas" name="notes">
                             <group>
-                                <field name="notes_customer" placeholder="Condiciones, exclusiones y observaciones visibles para el cliente..."/>
+                                <field name="notes_customer"
+                                       placeholder="Condiciones, exclusiones y observaciones visibles para el cliente..."/>
                                 <field name="notes_internal" placeholder="Información que solo verá el equipo..."/>
                             </group>
                             <group string="Aprobación">
@@ -180,7 +207,8 @@
                                 <field name="approved_date"/>
                             </group>
                         </page>
-                        <page string="Versiones" name="versions" invisible="not parent_estimate_id and not child_estimate_ids">
+                        <page string="Versiones" name="versions"
+                              invisible="not parent_estimate_id and not child_estimate_ids">
                             <field name="child_estimate_ids" readonly="1">
                                 <list create="0" delete="0">
                                     <field name="name"/>
@@ -202,7 +230,9 @@
         <field name="name">partyon.estimate.list</field>
         <field name="model">partyon.estimate</field>
         <field name="arch" type="xml">
-            <list string="Presupuestos internos" decoration-info="state == 'draft'" decoration-warning="state == 'review'" decoration-success="state in ('approved', 'customer_approved')" decoration-muted="state == 'cancel'">
+            <list string="Presupuestos internos" decoration-info="state == 'draft'"
+                  decoration-warning="state == 'review'" decoration-success="state in ('approved', 'customer_approved')"
+                  decoration-muted="state == 'cancel'">
                 <field name="name"/>
                 <field name="estimate_name"/>
                 <field name="partner_id"/>
@@ -224,14 +254,30 @@
         <field name="model">partyon.estimate</field>
         <field name="arch" type="xml">
             <kanban default_group_by="state" class="o_kanban_small_column">
-                <field name="name"/><field name="estimate_name"/><field name="partner_id"/>
-                <field name="user_id"/><field name="sale_price"/><field name="currency_id"/><field name="state"/>
+                <field name="name"/>
+                <field name="estimate_name"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
+                <field name="sale_price"/>
+                <field name="currency_id"/>
+                <field name="state"/>
                 <templates>
                     <t t-name="card">
-                        <div class="fw-bold"><field name="estimate_name"/></div>
-                        <div><field name="name"/> · <field name="partner_id"/></div>
-                        <div class="mt-2"><field name="sale_price" widget="monetary"/></div>
-                        <footer><field name="state" widget="badge"/><field name="user_id" widget="many2one_avatar_user"/></footer>
+                        <div class="fw-bold">
+                            <field name="estimate_name"/>
+                        </div>
+                        <div>
+                            <field name="name"/>
+                            ·
+                            <field name="partner_id"/>
+                        </div>
+                        <div class="mt-2">
+                            <field name="sale_price" widget="monetary"/>
+                        </div>
+                        <footer>
+                            <field name="state" widget="badge"/>
+                            <field name="user_id" widget="many2one_avatar_user"/>
+                        </footer>
                     </t>
                 </templates>
             </kanban>
@@ -243,7 +289,10 @@
         <field name="model">partyon.estimate</field>
         <field name="arch" type="xml">
             <search string="Buscar presupuestos">
-                <field name="name"/><field name="estimate_name"/><field name="partner_id"/><field name="user_id"/>
+                <field name="name"/>
+                <field name="estimate_name"/>
+                <field name="partner_id"/>
+                <field name="user_id"/>
                 <filter string="Borrador" name="draft" domain="[('state', '=', 'draft')]"/>
                 <filter string="En revisión" name="review" domain="[('state', '=', 'review')]"/>
                 <filter string="Aprobado" name="approved" domain="[('state', '=', 'approved')]"/>
@@ -267,6 +316,8 @@
         <field name="view_mode">list,kanban,form</field>
         <field name="search_view_id" ref="partyon_estimate_view_search"/>
         <field name="context">{'search_default_my': 1}</field>
-        <field name="help" type="html"><p class="o_view_nocontent_smiling_face">Cree el primer presupuesto interno</p></field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">Cree el primer presupuesto interno</p>
+        </field>
     </record>
 </odoo>
