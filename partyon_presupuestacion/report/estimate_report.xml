@@ -11,24 +11,46 @@
         <field name="binding_type">report</field>
     </record>
 
+    <template id="partyon_estimate_external_layout"
+              inherit_id="web.external_layout_standard"
+              primary="True">
+        <xpath expr="//img[contains(@class, 'o_company_logo_small')]" position="attributes">
+            <attribute name="class" add="partyon_estimate_company_logo" separator=" "/>
+        </xpath>
+        <xpath expr="//div[@name='company_address']" position="after">
+            <div class="col-6 text-end" name="customer_address">
+                <t t-out="address"/>
+            </div>
+        </xpath>
+        <xpath expr="//t[@t-call='web.address_layout']" position="replace">
+            <div class="oe_structure"/>
+        </xpath>
+        <xpath expr="//div[contains(@t-attf-class, 'article')]" position="attributes">
+            <attribute name="t-attf-class" add="partyon_estimate_article" separator=" "/>
+        </xpath>
+    </template>
+
     <template id="report_partyon_estimate">
         <t t-call="web.html_container">
             <t t-foreach="docs" t-as="doc">
                 <t t-set="o" t-value="doc"/>
-                <t t-call="web.external_layout">
+                <t t-set="company" t-value="doc.company_id"/>
+                <t t-call="partyon_presupuestacion.partyon_estimate_external_layout">
+                    <t t-set="address">
+                        <div t-field="doc.partner_id"
+                             t-options="{'widget': 'contact', 'fields': ['name', 'address'], 'no_marker': True}"/>
+                    </t>
+                    <t t-set="layout_document_title">
+                        <span>Presupuesto </span>
+                        <span t-field="doc.name"/>
+                    </t>
                     <div class="page">
-                        <h2>Presupuesto <span t-field="doc.name"/></h2>
                         <div class="row mt-3 mb-4">
-                            <div class="col-7">
-                                <strong>Cliente</strong>
-                                <div t-field="doc.partner_id" t-options="{'widget': 'contact', 'fields': ['name', 'address'], 'no_marker': True}"/>
-                            </div>
-                            <div class="col-5">
+                            <div class="col-5 ms-auto">
                                 <div><strong>Fecha:</strong> <span t-field="doc.date"/></div>
                                 <div t-if="doc.date_validity"><strong>Válido hasta:</strong> <span t-field="doc.date_validity"/></div>
                             </div>
                         </div>
-                        <h3 t-field="doc.estimate_name"/>
                         <p t-if="doc.description" t-field="doc.description"/>
                         <table class="table table-sm o_main_table mt-4">
                             <thead>
