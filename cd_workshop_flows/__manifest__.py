@@ -25,6 +25,7 @@ as any business that needs to handle custom work.
         'wizards/custom_board_wizard_view.xml',
         'views/board_format_view.xml',
         'views/product_template_views.xml',
+        'views/purchase_order_line_view.xml',
         'views/res_config_settings.xml',
     ],
 }
