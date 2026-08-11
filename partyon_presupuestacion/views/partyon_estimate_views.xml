@@ -77,7 +77,9 @@
                     <button name="action_new_version" string="Nueva versión" type="object"
                             invisible="state == 'cancel'"/>
                     <button name="action_save_as_template" string="Guardar como plantilla" type="object"
-                            invisible="state != 'draft'"/>
+                            invisible="state != 'draft'"
+                            confirm="¿Está seguro de que quiere guardar las lineas como plantilla?"
+                    />
                     <button name="action_cancel" string="Cancelar" type="object"
                             invisible="state in ('cancel', 'customer_approved')"/>
                     <button name="action_draft" string="Volver a borrador" type="object"
