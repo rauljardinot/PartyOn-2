@@ -10,10 +10,10 @@
                         <group string="Recurso">
                             <field name="line_type"/>
                             <field name="product_id"/>
-                            <field name="name"/>
+                            <field name="name" force_save="1"/>
                         </group>
                         <group string="Cálculo">
-                            <field name="calculation_method" readonly="product_id"/>
+                            <field name="calculation_method" readonly="product_id" force_save="1"/>
                             <field name="manual_quantity" invisible="calculation_method != 'manual'"/>
                             <field name="time_unit_sel" invisible="calculation_method != 'hours'"/>
                             <field name="hours" invisible="calculation_method != 'hours'"/>
@@ -27,7 +27,7 @@
                                    options="{'no_create': True}"
                                    help="Unidad de medida de los valores que se calculan"
                             />
-                            <field name="width" invisible="calculation_method != 'area'"/>
+                            <field name="width" invisible="calculation_method not in ('area','volume')"/>
                             <field name="height"/>
                             <field name="depth" invisible="calculation_method != 'volume'"/>
                         </group>
@@ -38,10 +38,11 @@
                     <group string="Resultado">
                         <group>
                             <field name="quantity" readonly="1"/>
-                            <field name="uom_id" readonly="product_id"/>
+                            <field name="uom_id" readonly="product_id" force_save="1"/>
                         </group>
                         <group>
-                            <field name="cost_unit" widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="cost_unit" widget="monetary" force_save="1"
+                                   options="{'currency_field': 'currency_id'}"/>
                             <field name="cost_subtotal" readonly="1"/>
                         </group>
                     </group>

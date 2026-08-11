@@ -154,6 +154,27 @@ class TestPartyonEstimate(TransactionCase):
         self.assertEqual(area_product.qty_available, 70.0)
         self.assertEqual(area_product.virtual_available, 40.0)
 
+    def test_estimate_area_product_keeps_calculation_method_on_create(self):
+        area_product = self.env['product.product'].create({
+            'name': 'Material de presupuesto por metro cuadrado',
+            'standard_price': 7.5,
+            'type': 'consu',
+            'uom_id': self.uom_square_meter.id,
+        })
+        estimate = self._create_estimate(line_ids=[fields.Command.create({
+            'product_id': area_product.id,
+            'name': area_product.display_name,
+            'width': 2.0,
+            'height': 3.0,
+            'dimension_uom_id': self.uom_meter.id,
+            'pieces': 1.0,
+            'uom_id': area_product.uom_id.id,
+            'cost_unit': area_product.standard_price,
+        })])
+        line = estimate.line_ids.filtered(lambda item: item.product_id == area_product)
+        self.assertEqual(line.calculation_method, 'area')
+        self.assertAlmostEqual(line.quantity, 6.0)
+
     def test_fixed_and_manual_price(self):
         estimate = self._create_estimate(margin_type='amount', margin_value=50.0)
         self.assertAlmostEqual(estimate.subtotal_cost, 100.0)
@@ -229,6 +250,30 @@ class TestPartyonEstimate(TransactionCase):
         self.assertEqual(template_line.template_id, template)
         self.assertEqual(estimate.line_ids.name, 'Diseño')
         self.assertEqual(estimate.margin_type, 'amount')
+
+    def test_template_area_product_keeps_calculation_method_on_create(self):
+        area_product = self.env['product.product'].create({
+            'name': 'Material por metro cuadrado',
+            'standard_price': 7.5,
+            'type': 'consu',
+            'uom_id': self.uom_square_meter.id,
+        })
+        template = self.env['partyon.estimate.template'].create({
+            'name': 'Plantilla de área',
+            'line_ids': [fields.Command.create({
+                'product_id': area_product.id,
+                'name': area_product.display_name,
+                'width': 2.0,
+                'height': 3.0,
+                'dimension_uom_id': self.uom_meter.id,
+                'pieces': 1.0,
+                'uom_id': area_product.uom_id.id,
+                'cost_unit': area_product.standard_price,
+            })],
+        })
+        line = template.line_ids.filtered(lambda item: not item.is_machine_cost_line)
+        self.assertEqual(line.calculation_method, 'area')
+        self.assertAlmostEqual(line.quantity, 6.0)
 
     def test_template_line_uses_estimate_line_create_logic(self):
         machine_product = self.env['product.product'].create({

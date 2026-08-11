@@ -93,6 +93,16 @@ class PartyonEstimateTemplateLine(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        for values in vals_list:
+            product = self.env['product.product'].browse(values.get('product_id')).exists()
+            if not product:
+                continue
+            calculation_method = self._get_calculation_method_from_uom(product.uom_id)
+            if calculation_method != 'manual' and values.get('calculation_method') in (None, 'manual'):
+                values['calculation_method'] = calculation_method
+            values.setdefault('uom_id', product.uom_id.id)
+            values.setdefault('name', product.display_name)
+            values.setdefault('cost_unit', product.standard_price)
         lines = super().create(vals_list)
         machine_lines = self.env['partyon.estimate.template.line']
         for line in lines:
