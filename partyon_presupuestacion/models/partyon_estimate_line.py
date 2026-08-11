@@ -325,6 +325,7 @@ class PartyonEstimateLine(models.Model):
     )
     machine_time_total = fields.Float(string="Tiempo total de máquinaria", default=0)
     machine_time_per_unit = fields.Float(string="Tiempo de máquina por unidad", compute='_compute_machine_time_per_unit' )
+    is_machine_cost_line = fields.Boolean(copy=False, readonly=True)
 
     @api.depends('product_id')
     def _compute_machine_time_per_unit(self):
@@ -347,7 +348,7 @@ class PartyonEstimateLine(models.Model):
         lines = super().create(vals_list)
         machine_lines = self.env['partyon.estimate.line']
         for line in lines:
-            if line.product_id.need_machine_cost:
+            if line.product_id.need_machine_cost and not line.is_machine_cost_line:
                  machine_line = line._generate_machine_cost()
                  machine_lines |= machine_line
 
@@ -370,6 +371,7 @@ class PartyonEstimateLine(models.Model):
             'line_type': 'extra',
             'cost_unit': machine_product.standard_price,
             'manual_quantity': self.machine_time_total,
+            'is_machine_cost_line': True,
         }
 
         partyon_line = self.env['partyon.estimate.line'].create(vals)

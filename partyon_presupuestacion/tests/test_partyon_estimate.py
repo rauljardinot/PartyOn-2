@@ -230,6 +230,62 @@ class TestPartyonEstimate(TransactionCase):
         self.assertEqual(estimate.line_ids.name, 'Diseño')
         self.assertEqual(estimate.margin_type, 'amount')
 
+    def test_template_line_uses_estimate_line_create_logic(self):
+        machine_product = self.env['product.product'].create({
+            'name': 'Coste de máquina de prueba',
+            'standard_price': 8.0,
+            'type': 'consu',
+            'uom_id': self.uom_hour.id,
+        })
+        source_product = self.env['product.product'].create({
+            'name': 'Material con máquina',
+            'standard_price': 10.0,
+            'type': 'consu',
+            'uom_id': self.uom_unit.id,
+            'need_machine_cost': True,
+            'machine_time_per_unit': 2.0,
+        })
+        self.env['ir.config_parameter'].sudo().set_param(
+            'partyon_presupuestacion.product_machine_cost', machine_product.id,
+        )
+        template = self.env['partyon.estimate.template'].create({
+            'name': 'Plantilla con máquina',
+            'line_ids': [fields.Command.create({
+                'line_type': 'material',
+                'product_id': source_product.id,
+                'name': source_product.display_name,
+                'manual_quantity': 3.0,
+                'uom_id': self.uom_unit.id,
+                'cost_unit': 10.0,
+                'machine_time_total': 6.0,
+            })],
+        })
+        self.assertEqual(len(template.line_ids), 2)
+        self.assertEqual(len(template.line_ids.filtered('is_machine_cost_line')), 1)
+        estimate = self._create_estimate(template_id=template.id)
+        estimate.action_apply_template()
+        source_line = estimate.line_ids.filtered(lambda line: line.product_id == source_product)
+        machine_line = estimate.line_ids.filtered(lambda line: line.product_id == machine_product)
+        self.assertEqual(len(source_line), 1)
+        self.assertEqual(len(machine_line), 1)
+        self.assertEqual(machine_line.manual_quantity, 6.0)
+        self.assertTrue(machine_line.is_machine_cost_line)
+
+    def test_estimate_can_be_saved_as_template(self):
+        estimate = self._create_estimate(
+            margin_type='amount',
+            margin_value=25.0,
+            quote_detail_mode='detail',
+        )
+        action = estimate.action_save_as_template()
+        template = self.env['partyon.estimate.template'].browse(action['res_id'])
+        self.assertEqual(template.name, estimate.estimate_name)
+        self.assertEqual(template.margin_type, estimate.margin_type)
+        self.assertEqual(template.margin_value, estimate.margin_value)
+        self.assertEqual(template.quote_detail_mode, estimate.quote_detail_mode)
+        self.assertEqual(len(template.line_ids), len(estimate.line_ids))
+        self.assertEqual(template.line_ids.name, estimate.line_ids.name)
+
     def test_summary_sale_order_uses_sale_price_and_internal_cost(self):
         estimate = self._create_estimate()
         estimate.action_review()

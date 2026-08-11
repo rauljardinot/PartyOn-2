@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from odoo import fields, models
+from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 
 class PartyonEstimateTemplate(models.Model):
@@ -75,6 +76,52 @@ class PartyonEstimateTemplateLine(models.Model):
         related='template_id.currency_id',
         store=True,
     )
+    machine_time_total = fields.Float(string='Tiempo total de maquinaria', default=0.0)
+    machine_time_per_unit = fields.Float(
+        string='Tiempo de máquina por unidad',
+        related='product_id.machine_time_per_unit',
+    )
+    is_machine_cost_line = fields.Boolean(copy=False, readonly=True)
+
+    @api.onchange('product_id', 'quantity')
+    def _onchange_machine_time_total(self):
+        for line in self:
+            if line.product_id and line.product_id.need_machine_cost:
+                line.machine_time_total = line.machine_time_per_unit * line.quantity
+            else:
+                line.machine_time_total = 0.0
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        lines = super().create(vals_list)
+        machine_lines = self.env['partyon.estimate.template.line']
+        for line in lines:
+            if line.product_id.need_machine_cost and not line.is_machine_cost_line:
+                machine_line = line._generate_machine_cost()
+                machine_lines |= machine_line
+        return lines | machine_lines
+
+    def _generate_machine_cost(self):
+        self.ensure_one()
+        product_id = self.env['ir.config_parameter'].sudo().get_param(
+            'partyon_presupuestacion.product_machine_cost'
+        )
+        if not product_id:
+            raise UserError("Configure el producto de coste de maquinaria.")
+
+        machine_product = self.env['product.product'].browse(int(product_id))
+        machine_time = self.machine_time_total or (
+            self.machine_time_per_unit * self.quantity
+        )
+        return self.env['partyon.estimate.template.line'].create({
+            'template_id': self.template_id.id,
+            'product_id': machine_product.id,
+            'name': 'Linea de coste de maquinaria',
+            'line_type': 'extra',
+            'cost_unit': machine_product.standard_price,
+            'manual_quantity': machine_time,
+            'is_machine_cost_line': True,
+        })
 
     def _prepare_estimate_line_values(self):
         self.ensure_one()
@@ -91,7 +138,10 @@ class PartyonEstimateTemplateLine(models.Model):
             'height': self.height,
             'depth': self.depth,
             'hours': self.hours,
+            'time_unit_sel': self.time_unit_sel,
             'waste_percent': self.waste_percent,
             'uom_id': self.uom_id.id,
             'cost_unit': self.cost_unit,
+            'machine_time_total': self.machine_time_total,
+            'is_machine_cost_line': self.is_machine_cost_line,
         }
