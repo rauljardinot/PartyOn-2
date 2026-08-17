@@ -9,9 +9,15 @@
             <field name="arch" type="xml">
                 <xpath expr="//form" position="inside">
                     <app name="partyon_presupuestacion" string="Presupuestación">
-                        <block title="Producto de Coste de Maquinaria">
-                            <setting id="setings_product_machine" help="Añade aquí el producto de coste de maquinaria.">
-                                <field name="product_machine_cost"/>
+                        <block title="Productos de Coste de Maquinaria">
+                            <setting id="setings_product_machine" help="Añade aquí el producto de coste de maquinaria de la cnc.">
+                                <field name="product_machine_cost_cnc"/>
+                            </setting>
+                            <setting id="setings_product_machine_wire" help="Añade aquí el producto de coste de maquinaria de la máquina de hilo.">
+                                <field name="product_machine_cost_wire"/>
+                            </setting>
+                            <setting id="setings_product_machine_3d" help="Añade aquí el producto de coste de maquinaria de la impresora 3d.">
+                                <field name="product_machine_cost_3d"/>
                             </setting>
                         </block>
                     </app>

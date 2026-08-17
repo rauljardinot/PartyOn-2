@@ -239,7 +239,7 @@ class PartyonEstimateCostMixin(models.AbstractModel):
             if line.calculation_method == 'volume' and line.depth <= 0:
                 raise ValidationError(_('La profundidad debe ser mayor que cero.'))
             if line.calculation_method == 'hours' and (line.hours <= 0 or line.pieces <= 0):
-                raise ValidationError(_('Las horas y las piezas deben ser mayores que cero.'))
+                raise ValidationError(_('Las horas y las piezas deben ser mayores que cero.')) # Checkear aqui.
             if line.calculation_method != 'manual':
                 reference_uom = line._get_calculation_reference_uom()
                 if not line.uom_id or not reference_uom._has_common_reference(line.uom_id):
@@ -324,23 +324,33 @@ class PartyonEstimateLine(models.Model):
         currency_field='currency_id',
     )
     machine_time_total = fields.Float(string="Tiempo total de máquinaria", default=0)
-    machine_time_per_unit = fields.Float(string="Tiempo de máquina por unidad", compute='_compute_machine_time_per_unit' )
+    machine_time_per_unit = fields.Float(string="Tiempo de máquina por unidad") # compute='_compute_machine_time_per_unit'
+    need_machine_cost = fields.Boolean(string="Necesita producto de coste", related='product_id.need_machine_cost')
     is_machine_cost_line = fields.Boolean(copy=False, readonly=True)
+    machine_product_type = fields.Selection(
+        [
+            ('cnc', 'CNC'),
+            ('3d', 'Impresora 3d'),
+            ('wire', 'Hilo Caliente'),
+        ],
+        string="Tipo de producto",
+        default='cnc'
+    )
 
-    @api.depends('product_id')
-    def _compute_machine_time_per_unit(self):
-        for record in self:
-            if record.product_id and record.product_id.need_machine_cost:
-                record.machine_time_per_unit = record.product_id.machine_time_per_unit
-            else:
-                record.machine_time_per_unit = 0
-    @api.onchange('product_id','quantity')
-    def _compute_machine_time_total(self):
-        for record in self:
-            if record.product_id and record.product_id.need_machine_cost:
-                record.machine_time_total = record.machine_time_per_unit * record.quantity
-            else:
-                record.machine_time_total = 0
+    # @api.depends('product_id')
+    # def _compute_machine_time_per_unit(self):
+    #     for record in self:
+    #         if record.product_id and record.product_id.need_machine_cost:
+    #             record.machine_time_per_unit = record.product_id.machine_time_per_unit
+    #         else:
+    #             record.machine_time_per_unit = 0
+    # @api.onchange('product_id','quantity')
+    # def _compute_machine_time_total(self):
+    #     for record in self:
+    #         if record.product_id and record.product_id.need_machine_cost:
+    #             record.machine_time_total = record.machine_time_per_unit * record.quantity
+    #         else:
+    #             record.machine_time_total = 0
 
     # Añado la nueva lógica para poder crear una linea de coste de máquinaria en el caso de que sea necesario.
     @api.model_create_multi
@@ -358,19 +368,36 @@ class PartyonEstimateLine(models.Model):
         lines = super().create(vals_list)
         machine_lines = self.env['partyon.estimate.line']
         for line in lines:
-            if line.product_id.need_machine_cost and not line.is_machine_cost_line:
-                 machine_line = line._generate_machine_cost()
-                 machine_lines |= machine_line
+            if (
+                not self.env.context.get('skip_machine_cost_generation')
+                and line.product_id.need_machine_cost
+                and not line.is_machine_cost_line
+            ):
+                machine_line = line._generate_machine_cost()
+                machine_lines |= machine_line
 
         return lines | machine_lines
 
     def _generate_machine_cost(self):
         self.ensure_one()
 
-        product_id = self.env['ir.config_parameter'].sudo().get_param('partyon_presupuestacion.product_machine_cost')
+        # Filtramos para ver qué tipo de producto de coste nos llevamos a la línea.
+        if self.machine_product_type == 'cnc':
+            machine_product = 'product_machine_cost_cnc'
+        elif self.machine_product_type == '3d':
+            machine_product = 'product_machine_cost_3d'
+        elif self.machine_product_type == 'wire':
+            machine_product = 'product_machine_cost_wire'
+        else:
+            raise UserError("Debe seleccionar un producto de coste válido")
+
+        product_id = self.env['ir.config_parameter'].sudo().get_param(f"partyon_presupuestacion.{machine_product}")
 
         if not product_id:
             raise UserError("Configure el producto de coste de maquinaria.")
+
+        if self.machine_time_total <= 0:
+            raise UserError("Debe especificar un tiempo de maquinaria mayor a 0. No se ha añadido la linea de maquinaria!")
 
         machine_product = self.env['product.product'].browse(int(product_id))
 
@@ -379,8 +406,10 @@ class PartyonEstimateLine(models.Model):
             'estimate_id': self.estimate_id.id,
             'name': 'Linea de coste de maquinaria',
             'line_type': 'extra',
+            'calculation_method': 'hours',
             'cost_unit': machine_product.standard_price,
-            'manual_quantity': self.machine_time_total,
+            'hours': self.machine_time_total,
+            'time_unit_sel': 'hours',
             'is_machine_cost_line': True,
         }
 

@@ -337,9 +337,11 @@ class PartyonEstimate(models.Model):
         commands.extend(
             fields.Command.create(line._prepare_estimate_line_values())
             for line in self.template_id.line_ids
-            if not line.is_machine_cost_line
         )
-        self.write({
+        # The template already contains the generated machine-cost lines.
+        # Copy them as-is and prevent estimate-line.create() from generating
+        # a second machine line for each source product.
+        self.with_context(skip_machine_cost_generation=True).write({
             'line_ids': commands,
             'estimate_category_id': self.template_id.category_id.id,
             'margin_type': self.template_id.margin_type,

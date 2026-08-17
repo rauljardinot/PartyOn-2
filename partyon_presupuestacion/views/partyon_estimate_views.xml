@@ -18,10 +18,12 @@
                             <field name="time_unit_sel" invisible="calculation_method != 'hours'"/>
                             <field name="hours" invisible="calculation_method != 'hours'"/>
                             <field name="pieces" invisible="calculation_method not in ('area', 'volume', 'hours')"/>
-                            <separator string="Tiempo de Máquina" invisible="not product_id or not product_id.need_machine_cost"/>
-                            <field name="machine_time_total" invisible="not product_id or not product_id.need_machine_cost"/>
-                        </group>
 
+                            <separator string="Tiempo de Máquina" invisible="not product_id or not need_machine_cost"/>
+                            <field name="machine_time_total" invisible="not product_id or not need_machine_cost"/>
+                            <field name="machine_product_type" invisible="not product_id or not need_machine_cost"/>
+                            <field name="need_machine_cost" invisible="1"/>
+                        </group>
                     </group>
                     <group string="Medidas" invisible="calculation_method not in ('area', 'volume', 'length')">
                         <group>

@@ -7,7 +7,6 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='barcode']" position="after">
                 <field name="need_machine_cost"/>
-                <field name="machine_time_per_unit" invisible="not need_machine_cost"/>
             </xpath>
         </field>
     </record>
