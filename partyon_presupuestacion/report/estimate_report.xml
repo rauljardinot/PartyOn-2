@@ -6,7 +6,7 @@
         <field name="report_type">qweb-pdf</field>
         <field name="report_name">partyon_presupuestacion.report_partyon_estimate</field>
         <field name="report_file">partyon_presupuestacion.report_partyon_estimate</field>
-        <field name="print_report_name">'Presupuesto - %s' % object.name</field>
+        <field name="print_report_name">'%s - %s' % (object.name, (object.description or '').replace('\n', ' '))</field>
         <field name="binding_model_id" ref="model_partyon_estimate"/>
         <field name="binding_type">report</field>
     </record>
