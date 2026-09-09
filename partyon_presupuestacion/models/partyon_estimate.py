@@ -338,7 +338,10 @@ class PartyonEstimate(models.Model):
             fields.Command.create(line._prepare_estimate_line_values())
             for line in self.template_id.line_ids
         )
-        self.write({
+        # The template already contains the generated machine-cost lines.
+        # Copy them as-is and prevent estimate-line.create() from generating
+        # a second machine line for each source product.
+        self.with_context(skip_machine_cost_generation=True).write({
             'line_ids': commands,
             'estimate_category_id': self.template_id.category_id.id,
             'margin_type': self.template_id.margin_type,
@@ -346,6 +349,48 @@ class PartyonEstimate(models.Model):
             'manual_sale_price': self.template_id.manual_sale_price,
             'quote_detail_mode': self.template_id.quote_detail_mode,
         })
+
+    def action_save_as_template(self):
+        self.ensure_one()
+        if self.state != 'draft':
+            raise UserError(_('Solo se pueden guardar como plantilla los presupuestos en borrador.'))
+        template = self.env['partyon.estimate.template'].create({
+            'name': self.estimate_name,
+            'category_id': self.estimate_category_id.id,
+            'company_id': self.company_id.id,
+            'margin_type': self.margin_type,
+            'margin_value': self.margin_value,
+            'manual_sale_price': self.manual_sale_price,
+            'quote_detail_mode': self.quote_detail_mode,
+            'description': self.description,
+            'line_ids': [fields.Command.create({
+                'sequence': line.sequence,
+                'line_type': line.line_type,
+                'product_id': line.product_id.id,
+                'name': line.name,
+                'calculation_method': line.calculation_method,
+                'manual_quantity': line.manual_quantity,
+                'pieces': line.pieces,
+                'width': line.width,
+                'height': line.height,
+                'depth': line.depth,
+                'hours': line.hours,
+                'time_unit_sel': line.time_unit_sel,
+                'dimension_uom_id': line.dimension_uom_id.id,
+                'waste_percent': line.waste_percent,
+                'uom_id': line.uom_id.id,
+                'cost_unit': line.cost_unit,
+                'machine_time_total': line.machine_time_total,
+            }) for line in self.line_ids if not line.is_machine_cost_line]
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('Plantilla de presupuesto'),
+            'res_model': 'partyon.estimate.template',
+            'res_id': template.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
 
     def _get_common_line_taxes(self):
         """Impuestos si TODAS las líneas comparten el mismo conjunto; vacío en

@@ -2,7 +2,7 @@
 
 from odoo import api, fields, models, _
 from odoo.exceptions import ValidationError
-
+from odoo.exceptions import UserError
 
 LINE_TYPES = [
     ('material', 'Material'),
@@ -18,6 +18,7 @@ CALCULATION_METHODS = [
     ('area', 'Área'),
     ('volume', 'Volumen'),
     ('hours', 'Horas'),
+    ('length', "Largo")
 ]
 
 
@@ -59,14 +60,15 @@ class PartyonEstimateCostMixin(models.AbstractModel):
     dimension_uom_id = fields.Many2one(
         'uom.uom',
         string='Unidad de las medidas',
-        domain=[('name', 'in', ['cm', 'm'])], # Para limitar las unidades de las dimensiones, lo suyo es en la vista pero no se actualiza
+        domain=[('name', 'in', ['cm', 'm'])],
+        # Para limitar las unidades de las dimensiones, lo suyo es en la vista pero no se actualiza
         default=lambda self: self.env.ref('uom.product_uom_cm'),
         help='Unidad utilizada para ancho, largo y profundidad.',
     )
     width = fields.Float(string='Ancho')
     height = fields.Float(string='Largo')
     depth = fields.Float(string='Profundidad')
-    hours = fields.Float(string='Horas')
+    hours = fields.Float(string='Tiempo')
     waste_percent = fields.Float(
         string='Merma (%)',
         help='Porcentaje adicional de material por recortes, pruebas o desperdicio.',
@@ -91,12 +93,20 @@ class PartyonEstimateCostMixin(models.AbstractModel):
         currency_field='currency_id',
     )
 
+    time_unit_sel = fields.Selection(
+        [("minutes", "Minutos"),
+         ("hours", "Horas")],
+        string='Unidad de tiempo',
+        default='minutes',
+    )
+
     def _get_calculation_reference_uom(self):
         self.ensure_one()
         xml_ids = {
             'area': 'uom.product_uom_square_meter',
             'volume': 'uom.product_uom_cubic_meter',
             'hours': 'uom.product_uom_hour',
+            'length': 'uom.product_uom_meter',
         }
         return self.env.ref(xml_ids[self.calculation_method])
 
@@ -107,6 +117,7 @@ class PartyonEstimateCostMixin(models.AbstractModel):
             ('area', self.env.ref('uom.product_uom_square_meter')),
             ('volume', self.env.ref('uom.product_uom_cubic_meter')),
             ('hours', self.env.ref('uom.product_uom_hour')),
+            ('length', self.env.ref('uom.product_uom_meter')),
         ]
         return next(
             (method for method, reference in references if uom._has_common_reference(reference)),
@@ -143,6 +154,15 @@ class PartyonEstimateCostMixin(models.AbstractModel):
                     if line.uom_id and reference_uom._has_common_reference(line.uom_id)
                     else base_quantity
                 )
+            elif line.calculation_method == 'length':
+                _width, height, _depth = line._dimensions_in_meters()
+                base_quantity = height * pieces * factor
+                reference_uom = line._get_calculation_reference_uom()
+                line.quantity = (
+                    reference_uom._compute_quantity(base_quantity, line.uom_id, round=False)
+                    if line.uom_id and reference_uom._has_common_reference(line.uom_id)
+                    else base_quantity
+                )
             elif line.calculation_method == 'volume':
                 width, height, depth = line._dimensions_in_meters()
                 base_quantity = width * height * depth * pieces * factor
@@ -153,7 +173,11 @@ class PartyonEstimateCostMixin(models.AbstractModel):
                     else base_quantity
                 )
             elif line.calculation_method == 'hours':
-                base_quantity = line.hours * pieces
+                if line.time_unit_sel == 'minutes':
+                    base_quantity = (line.hours / 60) * pieces
+                else:
+                    base_quantity = line.hours * pieces
+
                 reference_uom = line._get_calculation_reference_uom()
                 line.quantity = (
                     reference_uom._compute_quantity(base_quantity, line.uom_id, round=False)
@@ -215,7 +239,7 @@ class PartyonEstimateCostMixin(models.AbstractModel):
             if line.calculation_method == 'volume' and line.depth <= 0:
                 raise ValidationError(_('La profundidad debe ser mayor que cero.'))
             if line.calculation_method == 'hours' and (line.hours <= 0 or line.pieces <= 0):
-                raise ValidationError(_('Las horas y las piezas deben ser mayores que cero.'))
+                raise ValidationError(_('Las horas y las piezas deben ser mayores que cero.')) # Checkear aqui.
             if line.calculation_method != 'manual':
                 reference_uom = line._get_calculation_reference_uom()
                 if not line.uom_id or not reference_uom._has_common_reference(line.uom_id):
@@ -299,6 +323,98 @@ class PartyonEstimateLine(models.Model):
         compute='_compute_sale_tax_values',
         currency_field='currency_id',
     )
+    machine_time_total = fields.Float(string="Tiempo total de máquinaria", default=0)
+    machine_time_per_unit = fields.Float(string="Tiempo de máquina por unidad") # compute='_compute_machine_time_per_unit'
+    need_machine_cost = fields.Boolean(string="Necesita producto de coste", related='product_id.need_machine_cost')
+    is_machine_cost_line = fields.Boolean(copy=False, readonly=True)
+    machine_product_type = fields.Selection(
+        [
+            ('cnc', 'CNC'),
+            ('3d', 'Impresora 3d'),
+            ('wire', 'Hilo Caliente'),
+        ],
+        string="Tipo de producto",
+        default='cnc'
+    )
+
+    # @api.depends('product_id')
+    # def _compute_machine_time_per_unit(self):
+    #     for record in self:
+    #         if record.product_id and record.product_id.need_machine_cost:
+    #             record.machine_time_per_unit = record.product_id.machine_time_per_unit
+    #         else:
+    #             record.machine_time_per_unit = 0
+    # @api.onchange('product_id','quantity')
+    # def _compute_machine_time_total(self):
+    #     for record in self:
+    #         if record.product_id and record.product_id.need_machine_cost:
+    #             record.machine_time_total = record.machine_time_per_unit * record.quantity
+    #         else:
+    #             record.machine_time_total = 0
+
+    # Añado la nueva lógica para poder crear una linea de coste de máquinaria en el caso de que sea necesario.
+    @api.model_create_multi
+    def create(self, vals_list):
+        for values in vals_list:
+            product = self.env['product.product'].browse(values.get('product_id')).exists()
+            if not product:
+                continue
+            calculation_method = self._get_calculation_method_from_uom(product.uom_id)
+            if calculation_method != 'manual' and values.get('calculation_method') in (None, 'manual'):
+                values['calculation_method'] = calculation_method
+            values.setdefault('uom_id', product.uom_id.id)
+            values.setdefault('name', product.display_name)
+            values.setdefault('cost_unit', product.standard_price)
+        lines = super().create(vals_list)
+        machine_lines = self.env['partyon.estimate.line']
+        for line in lines:
+            if (
+                not self.env.context.get('skip_machine_cost_generation')
+                and line.product_id.need_machine_cost
+                and not line.is_machine_cost_line
+            ):
+                machine_line = line._generate_machine_cost()
+                machine_lines |= machine_line
+
+        return lines | machine_lines
+
+    def _generate_machine_cost(self):
+        self.ensure_one()
+
+        # Filtramos para ver qué tipo de producto de coste nos llevamos a la línea.
+        if self.machine_product_type == 'cnc':
+            machine_product = 'product_machine_cost_cnc'
+        elif self.machine_product_type == '3d':
+            machine_product = 'product_machine_cost_3d'
+        elif self.machine_product_type == 'wire':
+            machine_product = 'product_machine_cost_wire'
+        else:
+            raise UserError("Debe seleccionar un producto de coste válido")
+
+        product_id = self.env['ir.config_parameter'].sudo().get_param(f"partyon_presupuestacion.{machine_product}")
+
+        if not product_id:
+            raise UserError("Configure el producto de coste de maquinaria.")
+
+        if self.machine_time_total <= 0:
+            raise UserError("Debe especificar un tiempo de maquinaria mayor a 0. No se ha añadido la linea de maquinaria!")
+
+        machine_product = self.env['product.product'].browse(int(product_id))
+
+        vals = {
+            'product_id': machine_product.id,
+            'estimate_id': self.estimate_id.id,
+            'name': 'Linea de coste de maquinaria',
+            'line_type': 'extra',
+            'calculation_method': 'hours',
+            'cost_unit': machine_product.standard_price,
+            'hours': self.machine_time_total,
+            'time_unit_sel': 'hours',
+            'is_machine_cost_line': True,
+        }
+
+        partyon_line = self.env['partyon.estimate.line'].create(vals)
+        return partyon_line
 
     @api.depends('product_id', 'quantity')
     def _compute_stock_quantities(self):

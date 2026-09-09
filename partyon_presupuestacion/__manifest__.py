@@ -12,6 +12,7 @@
     'website': 'https://www.partyon.com',
     'license': 'LGPL-3',
     'depends': [
+        'web',
         'crm',
         'sale_management',
         'sale_margin',
@@ -29,8 +30,15 @@
         'views/sale_order_view.xml',
         'views/estimate_category_views.xml',
         'views/menu_views.xml',
+        'views/product_template_views.xml',
+        'views/res_config_views.xml',
         'report/estimate_report.xml',
     ],
+    'assets': {
+        'web.report_assets_common': [
+            'partyon_presupuestacion/static/src/scss/estimate_report.scss',
+        ],
+    },
     'installable': True,
     'application': True,
     'auto_install': False,
