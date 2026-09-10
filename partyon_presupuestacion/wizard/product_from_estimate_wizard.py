@@ -28,8 +28,8 @@ class ProductFromEstimateWizard(models.TransientModel):
             notes = f"LINEAS DEL PRESUPUESTO : {estimate_active.estimate_name}\n"
             if estimate_active.line_ids:
                 for line in estimate_active.line_ids:
-                    notes += (f"\n Producto: {line.product_id.name} "
-                              f"Cantidad: {line.quantity} {line.uom_id.name}, "
+                    notes += (f"\n Producto: {line.product_id.name} \t"
+                              f"Cantidad: {line.quantity} {line.uom_id.name}, \t"
                               f"Precio total : {line.cost_subtotal} €")
 
             self.env['product.product'].create({
