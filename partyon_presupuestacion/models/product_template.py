@@ -12,5 +12,6 @@ class ProductTemplate(models.Model):
         help="Marcar en el caso de que este producto genere una linea de coste de máquinaria en la presupuestación.",
     )
     machine_time_per_unit = fields.Float(string="Tiempo de maquina por Unidad (horas)")
-
+    estimate_notes = fields.Text(string='Líneas del presupuesto')
+    estimate_id = fields.Many2one('partyon.estimate', string='Estimate', ondelete='set null')
 

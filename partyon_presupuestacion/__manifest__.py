@@ -32,6 +32,7 @@
         'views/menu_views.xml',
         'views/product_template_views.xml',
         'views/res_config_views.xml',
+        'wizard/product_from_estimate_wizard_view.xml',
         'report/estimate_report.xml',
     ],
     'assets': {

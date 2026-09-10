@@ -7,6 +7,13 @@
         <field name="arch" type="xml">
             <xpath expr="//field[@name='barcode']" position="after">
                 <field name="need_machine_cost"/>
+                <field name="estimate_id" invisible="1"/>
+            </xpath>
+
+            <xpath expr="//page[@name='inventory']" position="after">
+                <page string="Líneas de presupuesto" invisible='not estimate_id'>
+                    <field colspan="2" name="estimate_notes" nolabel="1"/>
+                </page>
             </xpath>
         </field>
     </record>

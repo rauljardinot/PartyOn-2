@@ -323,6 +323,7 @@ class PartyonEstimateLine(models.Model):
         compute='_compute_sale_tax_values',
         currency_field='currency_id',
     )
+    discount_renting = fields.Float(string="Descuento", default=0.3)
     machine_time_total = fields.Float(string="Tiempo total de máquinaria", default=0)
     machine_time_per_unit = fields.Float(string="Tiempo de máquina por unidad") # compute='_compute_machine_time_per_unit'
     need_machine_cost = fields.Boolean(string="Necesita producto de coste", related='product_id.need_machine_cost')

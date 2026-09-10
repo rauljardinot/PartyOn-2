@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="product_from_estimate_view_form" model="ir.ui.view">
+        <field name="name">product.from_estimate.view.form</field>
+        <field name="model">product.from.estimate.wizard</field>
+        <field name="arch" type="xml">
+            <form string="product_from_estimate_form">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <!--                        <div style="display: flex; align-items: center; gap: 5px;">-->
+                        <!--                            <label for="price" class="o_form_label" string="Precio a mano:"/>-->
+                        <!--                            <div style="width: 70px; margin-right: 5px; margin-left: 40px">-->
+                        <!--                                <field name="price" string="precio"/>-->
+                        <!--                            </div>-->
+                        <!--                            <div class="text-warning" invisible="price != 0">-->
+                        <!--                                <i class="fa fa-exclamation-triangle"/>-->
+                        <!--                                Si se deja el precio a 0 se toma el precio total del presupuesto.-->
+                        <!--                            </div>-->
+                        <!--                        </div>-->
+                        <label for="price" class="o_form_label" string="Precio:" style="margin: 0;"/>
+                        <div class="d-flex align-items-center" style="gap: 15px;">
+                            <div style="width: 100px;">
+                                <field name="price" string="precio"/>
+                            </div>
+                            <div class="text-warning text-nowrap" invisible="price != 0">
+                                <i class="fa fa-exclamation-triangle me-2"/>
+                                Si se deja el precio a 0 se toma el precio total del presupuesto.
+                            </div>
+                        </div>
+                        <field name="currency_id" invisible="1"/>
+                    </group>
+                    <footer>
+                        <button name="action_generate_product" type="object" string="Crear Producto"/>
+                        <button special="cancel" string="Cancelar" class="btn-danger"/>
+                    </footer>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="product_rom_estimate_action" model="ir.actions.act_window">
+        <field name="name">Producto desde Presupuesto</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">product.from.estimate.wizard</field>
+        <field name="view_mode">form</field>
+    </record>
+</odoo>

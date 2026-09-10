@@ -68,6 +68,9 @@
         <field name="arch" type="xml">
             <form string="Presupuesto interno">
                 <header>
+                    <button name="action_create_product_from_estimate" string="Crear Producto" type="object"
+                            class="btn-primary"
+                            />
                     <button name="action_review" string="Enviar a revisión" type="object" class="btn-primary"
                             invisible="state != 'draft'"/>
                     <button name="action_approve" string="Aprobar" type="object" class="btn-primary"
@@ -95,6 +98,10 @@
                                 icon="fa-shopping-cart" invisible="not sale_order_id">
                             <field name="sale_order_id" widget="statinfo" string="Cotización"/>
                         </button>
+                        <button name="action_show_products" type="object" class="oe_stat_button"
+                                icon="fa-suitcase" invisible="not product_ids">
+                            <field name="product_count" widget="statinfo" string="Productos"/>
+                        </button>
                     </div>
                     <div class="oe_title">
                         <label for="name"/>
@@ -119,6 +126,7 @@
                             <field name="company_id" groups="base.group_multi_company" readonly="state != 'draft'"/>
                             <field name="currency_id" invisible="1"/>
                             <field name="version"/>
+                            <field name="is_for_renting" widget="boolean_toggle"/>
                             <field name="parent_estimate_id" invisible="not parent_estimate_id"/>
                         </group>
                     </group>
@@ -140,6 +148,7 @@
                                 <list default_order="sequence, id">
                                     <field name="sequence" widget="handle"/>
                                     <field name="product_id"/>
+                                    <field name="discount_renting" column_invisible="not parent.is_for_renting" widget="percentage"/>
                                     <field name="name" optional="hide"/>
                                     <field name="width" string="Ancho"/>
                                     <field name="height" string="Largo"/>
@@ -149,7 +158,7 @@
                                     <field name="cost_subtotal" sum="Coste total"/>
                                     <field name="available_quantity" optional="hide" readonly="1"/>
                                     <field name="remaining_quantity" optional="hide" readonly="1"/>
-                            <field name="shortage_quantity" optional="hide" readonly="1"
+                                    <field name="shortage_quantity" optional="hide" readonly="1"
                                            decoration-danger="shortage_quantity &gt; 0"/>
                                     <field name="is_machine_cost_line" column_invisible="1"/>
                                     <field name="currency_id" column_invisible="1"/>

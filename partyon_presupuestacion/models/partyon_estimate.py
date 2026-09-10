@@ -190,6 +190,30 @@ class PartyonEstimate(models.Model):
     approved_date = fields.Datetime(
         string='Fecha de aprobación', copy=False, readonly=True,
     )
+    is_for_renting = fields.Boolean(string="Para Alquiler", default=False)
+
+    product_ids = fields.One2many('product.product', inverse_name='estimate_id', string='Productos')
+    product_count = fields.Integer(string="Productos", compute='_compute_product_count', store=True,)
+
+
+    @api.depends('product_ids')
+    def _compute_product_count(self):
+        for record in self:
+            if record.product_ids:
+                record.product_count = len(record.product_ids)
+            else:
+                record.product_count = 0
+
+    def action_show_products(self):
+        return {
+            "name": "Productos",
+            "type": "ir.actions.act_window",
+            'domain': [('estimate_id', '=', self.id)],
+            "view_mode": "list,form",
+            'context': {'default_estimate_id': self.id},
+            "res_model": "product.product",
+            "target": "current",
+        }
 
     @api.depends('line_ids.line_type', 'line_ids.cost_subtotal')
     def _compute_totals(self):
@@ -497,3 +521,15 @@ class PartyonEstimate(models.Model):
             if estimate.state != 'quoted':
                 raise UserError(_('Solo se puede aceptar un presupuesto ya cotizado.'))
             estimate.state = 'customer_approved'
+
+    def action_create_product_from_estimate(self):
+        self.ensure_one()
+
+        return {
+            'name': 'Crear producto',
+            'type': 'ir.actions.act_window',
+            'res_model': 'product.from.estimate.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_estimate_id': self.id}
+        }

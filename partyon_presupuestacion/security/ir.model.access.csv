@@ -9,3 +9,5 @@ access_partyon_estimate_template_line_user,partyon.estimate.template.line.user,m
 access_partyon_estimate_template_line_manager,partyon.estimate.template.line.manager,model_partyon_estimate_template_line,group_partyon_manager,1,1,1,1
 access_estimate_category_user,estimate.category.user,model_estimate_category,group_partyon_user,1,0,0,0
 access_estimate_category_manager,estimate.category.manager,model_estimate_category,group_partyon_manager,1,1,1,1
+access_product_from_estimate_wizard,product.from.estimate.wizard,model_product_from_estimate_wizard,group_partyon_user,1,1,0,0
+access_product_from_estimate_wizard,product.from.estimate.wizard,model_product_from_estimate_wizard,group_partyon_manager,1,1,1,1
