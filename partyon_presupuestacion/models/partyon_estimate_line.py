@@ -431,6 +431,7 @@ class PartyonEstimateLine(models.Model):
     @api.depends(
         'quantity', 'cost_subtotal', 'estimate_id.sale_price',
         'estimate_id.subtotal_cost', 'estimate_id.line_ids.cost_subtotal',
+        'estimate_id.is_for_renting', 'discount_renting',
     )
     def _compute_sale_values(self):
         for line in self:
@@ -441,6 +442,8 @@ class PartyonEstimateLine(models.Model):
                 sale_subtotal = estimate.sale_price * line.cost_subtotal / estimate.subtotal_cost
             else:
                 sale_subtotal = estimate.sale_price / len(estimate.line_ids)
+            if estimate.is_for_renting:
+                sale_subtotal *= (1.0 - line.discount_renting)
             line.sale_subtotal = sale_subtotal
             line.sale_unit = sale_subtotal / line.quantity if line.quantity else 0.0
             line.margin_amount = sale_subtotal - line.cost_subtotal

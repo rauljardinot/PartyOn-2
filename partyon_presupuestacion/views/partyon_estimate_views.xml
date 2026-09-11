@@ -35,6 +35,7 @@
                         </group>
                         <group>
                             <field name="waste_percent"/>
+                            <field name="discount_renting" invisible="not parent.is_for_renting" widget="percentage"/>
                         </group>
                     </group>
                     <group string="Resultado">
