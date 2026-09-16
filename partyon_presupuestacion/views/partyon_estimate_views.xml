@@ -18,6 +18,7 @@
                             <field name="time_unit_sel" invisible="calculation_method != 'hours'"/>
                             <field name="hours" invisible="calculation_method != 'hours'"/>
                             <field name="pieces" invisible="calculation_method not in ('area', 'volume', 'hours')"/>
+                            <field name="discount_renting" invisible="not parent.is_for_renting" widget="percentage"/>
 
                             <separator string="Tiempo de Máquina" invisible="not product_id or not need_machine_cost"/>
                             <field name="machine_time_total" invisible="not product_id or not need_machine_cost"/>
@@ -35,7 +36,6 @@
                         </group>
                         <group>
                             <field name="waste_percent"/>
-                            <field name="discount_renting" invisible="not parent.is_for_renting" widget="percentage"/>
                         </group>
                     </group>
                     <group string="Resultado">
