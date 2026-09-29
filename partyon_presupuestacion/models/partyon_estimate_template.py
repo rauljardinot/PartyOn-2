@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from odoo import api, fields, models
-from odoo.exceptions import UserError
 
 
 class PartyonEstimateTemplate(models.Model):
@@ -77,6 +76,11 @@ class PartyonEstimateTemplateLine(models.Model):
         store=True,
     )
     machine_time_total = fields.Float(string='Tiempo total de maquinaria', default=0.0)
+    machine_time_unit_sel = fields.Selection(
+        [('minutes', 'Minutos'), ('hours', 'Horas')],
+        string='Unidad de tiempo de máquina',
+        default='minutes',
+    )
     machine_time_per_unit = fields.Float(
         string='Tiempo de máquina por unidad',
         related='product_id.machine_time_per_unit',
@@ -113,49 +117,7 @@ class PartyonEstimateTemplateLine(models.Model):
             values.setdefault('uom_id', product.uom_id.id)
             values.setdefault('name', product.display_name)
             values.setdefault('cost_unit', product.standard_price)
-        lines = super().create(vals_list)
-        machine_lines = self.env['partyon.estimate.template.line']
-        for line in lines:
-            if line.product_id.need_machine_cost and not line.is_machine_cost_line:
-                machine_line = line._generate_machine_cost()
-                machine_lines |= machine_line
-        return lines | machine_lines
-
-    def _generate_machine_cost(self):
-        self.ensure_one()
-        if self.machine_product_type == 'cnc':
-            machine_product = 'product_machine_cost_cnc'
-        elif self.machine_product_type == '3d':
-            machine_product = 'product_machine_cost_3d'
-        elif self.machine_product_type == 'wire':
-            machine_product = 'product_machine_cost_wire'
-        else:
-            raise UserError("Debe seleccionar un producto de coste válido")
-
-        product_id = self.env['ir.config_parameter'].sudo().get_param(
-            f"partyon_presupuestacion.{machine_product}"
-        )
-        if not product_id:
-            raise UserError("Configure el producto de coste de maquinaria.")
-
-        if self.machine_time_total <= 0:
-            raise UserError("Debe añadir un tiempo de maquinaria mayor a 0. No se ha añadido la linea de maquinaria!")
-
-        machine_product = self.env['product.product'].browse(int(product_id))
-        machine_time = self.machine_time_total or (
-            self.machine_time_per_unit * self.quantity
-        )
-        return self.env['partyon.estimate.template.line'].create({
-            'template_id': self.template_id.id,
-            'product_id': machine_product.id,
-            'name': 'Linea de coste de maquinaria',
-            'line_type': 'extra',
-            'cost_unit': machine_product.standard_price,
-            'calculation_method': 'hours',
-            'hours': machine_time,
-            'time_unit_sel': 'hours',
-            'is_machine_cost_line': True,
-        })
+        return super().create(vals_list)
 
     def _prepare_estimate_line_values(self):
         self.ensure_one()
@@ -177,6 +139,7 @@ class PartyonEstimateTemplateLine(models.Model):
             'uom_id': self.uom_id.id,
             'cost_unit': self.cost_unit,
             'machine_time_total': self.machine_time_total,
+            'machine_time_unit_sel': self.machine_time_unit_sel,
             'is_machine_cost_line': self.is_machine_cost_line,
             'need_machine_cost': self.need_machine_cost,
             'machine_product_type': self.machine_product_type,

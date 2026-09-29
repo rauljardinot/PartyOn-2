@@ -304,7 +304,51 @@ class PartyonEstimate(models.Model):
         for values in vals_list:
             if not values.get('name') or values['name'] in (_('Nuevo'), 'New'):
                 values['name'] = self.env['ir.sequence'].next_by_code('partyon.estimate') or _('Nuevo')
-        return super().create(vals_list)
+        estimates = super().create(vals_list)
+        if not self.env.context.get('skip_machine_cost_sync'):
+            estimates._sync_machine_cost_lines()
+        return estimates
+
+    def write(self, vals):
+        result = super().write(vals)
+        if 'line_ids' in vals and not self.env.context.get('skip_machine_cost_sync'):
+            self._sync_machine_cost_lines()
+        return result
+
+    def _sync_machine_cost_lines(self):
+        """Reconcilia las líneas de coste de maquinaria del presupuesto.
+
+        Crea la línea de máquina que falta para cada línea de producto que la
+        requiere y elimina las que hayan quedado huérfanas (su línea de origen
+        ya no existe o ya no necesita maquinaria). No modifica las horas de las
+        líneas de máquina ya existentes.
+        """
+        for estimate in self:
+            existing = estimate.line_ids.filtered('is_machine_cost_line')
+            needed = self.env['partyon.estimate.line']
+            for line in estimate.line_ids.filtered(lambda item: not item.is_machine_cost_line):
+                if not line.product_id.need_machine_cost:
+                    continue
+                machine_product = line._get_machine_cost_product()
+                machine_line = existing.filtered(
+                    lambda item: item.source_line_id == line
+                )
+                if not machine_line and machine_product:
+                    machine_line = existing.filtered(
+                        lambda item: not item.source_line_id
+                        and item.product_id == machine_product
+                    )
+                if not machine_line:
+                    machine_line = line._generate_machine_cost()
+                needed |= machine_line
+            orphan = existing.filtered(
+                lambda item: item.source_line_id
+                and (
+                    item.source_line_id not in estimate.line_ids
+                    or not item.source_line_id.product_id.need_machine_cost
+                )
+            ) - needed
+            orphan.unlink()
 
     def copy(self, default=None):
         values = dict(default or {})
@@ -312,6 +356,10 @@ class PartyonEstimate(models.Model):
         values.setdefault('sale_order_id', False)
         values.setdefault('approved_by', False)
         values.setdefault('approved_date', False)
+        values['line_ids'] = [
+            fields.Command.create(line._prepare_estimate_line_values())
+            for line in self.line_ids if not line.is_machine_cost_line
+        ]
         return super().copy(values)
 
     def action_review(self):
@@ -362,10 +410,9 @@ class PartyonEstimate(models.Model):
             fields.Command.create(line._prepare_estimate_line_values())
             for line in self.template_id.line_ids
         )
-        # The template already contains the generated machine-cost lines.
-        # Copy them as-is and prevent estimate-line.create() from generating
-        # a second machine line for each source product.
-        self.with_context(skip_machine_cost_generation=True).write({
+        # Machine-cost lines are only generated when adding lines through the
+        # estimate form, so applying a template never creates nor cleans them.
+        self.with_context(skip_machine_cost_sync=True).write({
             'line_ids': commands,
             'estimate_category_id': self.template_id.category_id.id,
             'margin_type': self.template_id.margin_type,
@@ -405,6 +452,7 @@ class PartyonEstimate(models.Model):
                 'uom_id': line.uom_id.id,
                 'cost_unit': line.cost_unit,
                 'machine_time_total': line.machine_time_total,
+                'machine_time_unit_sel': line.machine_time_unit_sel,
             }) for line in self.line_ids if not line.is_machine_cost_line]
         })
         return {

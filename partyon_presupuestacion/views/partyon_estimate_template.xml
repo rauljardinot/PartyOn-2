@@ -19,8 +19,9 @@
                             <field name="hours" invisible="calculation_method != 'hours'"/>
                             <field name="pieces" invisible="calculation_method not in ('area', 'volume', 'hours')"/>
 
-                            <separator invisible="not product_id or not need_machine_cost"/>
+                            <separator string="Tiempo de Máquina" invisible="not product_id or not need_machine_cost"/>
                             <field name="machine_time_total" invisible="not product_id or not need_machine_cost"/>
+                            <field name="machine_time_unit_sel" widget="radio" invisible="not product_id or not need_machine_cost"/>
                             <field name="machine_product_type" invisible="not product_id or not need_machine_cost"/>
                             <field name="need_machine_cost" invisible="1"/>
                         </group>

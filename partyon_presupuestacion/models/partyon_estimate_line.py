@@ -138,7 +138,7 @@ class PartyonEstimateCostMixin(models.AbstractModel):
 
     @api.depends(
         'calculation_method', 'manual_quantity', 'pieces', 'width', 'height',
-        'depth', 'hours', 'waste_percent', 'dimension_uom_id',
+        'depth', 'hours', 'time_unit_sel', 'waste_percent', 'dimension_uom_id',
         'dimension_uom_id.factor', 'uom_id', 'uom_id.factor',
     )
     def _compute_quantity(self):
@@ -325,9 +325,19 @@ class PartyonEstimateLine(models.Model):
     )
     discount_renting = fields.Float(string="Descuento", default=0.7)
     machine_time_total = fields.Float(string="Tiempo total de máquinaria", default=0)
+    machine_time_unit_sel = fields.Selection(
+        [("minutes", "Minutos"), ("hours", "Horas")],
+        string='Unidad de tiempo de máquina',
+        default='minutes',
+    )
     machine_time_per_unit = fields.Float(string="Tiempo de máquina por unidad") # compute='_compute_machine_time_per_unit'
     need_machine_cost = fields.Boolean(string="Necesita producto de coste", related='product_id.need_machine_cost')
     is_machine_cost_line = fields.Boolean(copy=False, readonly=True)
+    source_line_id = fields.Many2one(
+        'partyon.estimate.line',
+        string='Línea origen',
+        index=True,
+    )
     machine_product_type = fields.Selection(
         [
             ('cnc', 'CNC'),
@@ -353,7 +363,6 @@ class PartyonEstimateLine(models.Model):
     #         else:
     #             record.machine_time_total = 0
 
-    # Añado la nueva lógica para poder crear una linea de coste de máquinaria en el caso de que sea necesario.
     @api.model_create_multi
     def create(self, vals_list):
         for values in vals_list:
@@ -366,23 +375,11 @@ class PartyonEstimateLine(models.Model):
             values.setdefault('uom_id', product.uom_id.id)
             values.setdefault('name', product.display_name)
             values.setdefault('cost_unit', product.standard_price)
-        lines = super().create(vals_list)
-        machine_lines = self.env['partyon.estimate.line']
-        for line in lines:
-            if (
-                not self.env.context.get('skip_machine_cost_generation')
-                and line.product_id.need_machine_cost
-                and not line.is_machine_cost_line
-            ):
-                machine_line = line._generate_machine_cost()
-                machine_lines |= machine_line
+        return super().create(vals_list)
 
-        return lines | machine_lines
-
-    def _generate_machine_cost(self):
+    def _get_machine_cost_product(self):
+        """Producto de coste de maquinaria según el tipo configurado en la línea."""
         self.ensure_one()
-
-        # Filtramos para ver qué tipo de producto de coste nos llevamos a la línea.
         if self.machine_product_type == 'cnc':
             machine_product = 'product_machine_cost_cnc'
         elif self.machine_product_type == '3d':
@@ -391,31 +388,68 @@ class PartyonEstimateLine(models.Model):
             machine_product = 'product_machine_cost_wire'
         else:
             raise UserError("Debe seleccionar un producto de coste válido")
-
-        product_id = self.env['ir.config_parameter'].sudo().get_param(f"partyon_presupuestacion.{machine_product}")
-
+        product_id = self.env['ir.config_parameter'].sudo().get_param(
+            f"partyon_presupuestacion.{machine_product}"
+        )
         if not product_id:
-            raise UserError("Configure el producto de coste de maquinaria.")
+            return self.env['product.product']
+        return self.env['product.product'].browse(int(product_id))
+
+    def _generate_machine_cost(self):
+        self.ensure_one()
 
         if self.machine_time_total <= 0:
             raise UserError("Debe especificar un tiempo de maquinaria mayor a 0. No se ha añadido la linea de maquinaria!")
 
-        machine_product = self.env['product.product'].browse(int(product_id))
+        machine_product = self._get_machine_cost_product()
+
+        if not machine_product:
+            raise UserError("Configure el producto de coste de maquinaria.")
+
+        machine_hours = self.machine_time_total
+        if self.machine_time_unit_sel == 'minutes':
+            machine_hours = self.machine_time_total / 60
 
         vals = {
             'product_id': machine_product.id,
             'estimate_id': self.estimate_id.id,
+            'source_line_id': self.id,
             'name': 'Linea de coste de maquinaria',
             'line_type': 'extra',
             'calculation_method': 'hours',
             'cost_unit': machine_product.standard_price,
-            'hours': self.machine_time_total,
+            'hours': machine_hours,
             'time_unit_sel': 'hours',
+            'pieces': 1.0,
             'is_machine_cost_line': True,
         }
 
         partyon_line = self.env['partyon.estimate.line'].create(vals)
         return partyon_line
+
+    def _prepare_estimate_line_values(self):
+        self.ensure_one()
+        return {
+            'sequence': self.sequence,
+            'line_type': self.line_type,
+            'product_id': self.product_id.id,
+            'name': self.name,
+            'calculation_method': self.calculation_method,
+            'dimension_uom_id': self.dimension_uom_id.id,
+            'manual_quantity': self.manual_quantity,
+            'pieces': self.pieces,
+            'width': self.width,
+            'height': self.height,
+            'depth': self.depth,
+            'hours': self.hours,
+            'time_unit_sel': self.time_unit_sel,
+            'waste_percent': self.waste_percent,
+            'uom_id': self.uom_id.id,
+            'cost_unit': self.cost_unit,
+            'machine_time_total': self.machine_time_total,
+            'machine_time_unit_sel': self.machine_time_unit_sel,
+            'machine_product_type': self.machine_product_type,
+        }
 
     @api.depends('product_id', 'quantity')
     def _compute_stock_quantities(self):

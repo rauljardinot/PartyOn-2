@@ -275,7 +275,7 @@ class TestPartyonEstimate(TransactionCase):
         self.assertEqual(line.calculation_method, 'area')
         self.assertAlmostEqual(line.quantity, 6.0)
 
-    def test_template_line_uses_estimate_line_create_logic(self):
+    def test_template_line_does_not_generate_machine_cost(self):
         machine_product = self.env['product.product'].create({
             'name': 'Coste de máquina de prueba',
             'standard_price': 8.0,
@@ -303,64 +303,308 @@ class TestPartyonEstimate(TransactionCase):
                 'uom_id': self.uom_unit.id,
                 'cost_unit': 10.0,
                 'machine_time_total': 6.0,
+                'machine_time_unit_sel': 'hours',
             })],
         })
-        self.assertEqual(len(template.line_ids), 2)
-        self.assertEqual(len(template.line_ids.filtered('is_machine_cost_line')), 1)
+        self.assertEqual(len(template.line_ids), 1)
+        self.assertFalse(template.line_ids.filtered('is_machine_cost_line'))
         estimate = self._create_estimate(template_id=template.id)
         estimate.action_apply_template()
         source_line = estimate.line_ids.filtered(lambda line: line.product_id == source_product)
         machine_line = estimate.line_ids.filtered(lambda line: line.product_id == machine_product)
         self.assertEqual(len(source_line), 1)
+        self.assertEqual(source_line.machine_time_total, 6.0)
+        self.assertFalse(machine_line)
+        self.assertFalse(estimate.line_ids.filtered('is_machine_cost_line'))
+
+        # Machine lines are only generated when the estimate form saves lines.
+        estimate.write({'line_ids': [fields.Command.update(source_line.id, {})]})
+        machine_line = estimate.line_ids.filtered(lambda line: line.product_id == machine_product)
         self.assertEqual(len(machine_line), 1)
         self.assertEqual(machine_line.hours, 6.0)
         self.assertEqual(machine_line.quantity, 6.0)
         self.assertTrue(machine_line.is_machine_cost_line)
 
-    def test_apply_template_copies_updated_machine_line_once(self):
+    def test_template_from_estimate_has_no_machine_lines(self):
         machine_product = self.env['product.product'].create({
-            'name': 'Coste de máquina para plantilla',
+            'name': 'Coste de máquina (horas)',
             'standard_price': 8.0,
             'type': 'consu',
             'uom_id': self.uom_hour.id,
         })
         source_product = self.env['product.product'].create({
-            'name': 'Producto con máquina en plantilla',
+            'name': 'Pieza con máquina',
             'standard_price': 10.0,
             'type': 'consu',
             'uom_id': self.uom_unit.id,
             'need_machine_cost': True,
-            'machine_time_per_unit': 2.0,
         })
         self.env['ir.config_parameter'].sudo().set_param(
             'partyon_presupuestacion.product_machine_cost_cnc', machine_product.id,
         )
-        template = self.env['partyon.estimate.template'].create({
-            'name': 'Plantilla con línea de máquina actualizada',
-            'line_ids': [fields.Command.create({
+        estimate = self._create_estimate(line_ids=[fields.Command.create({
+            'line_type': 'material',
+            'product_id': source_product.id,
+            'name': source_product.display_name,
+            'manual_quantity': 3.0,
+            'uom_id': self.uom_unit.id,
+            'cost_unit': 10.0,
+            'machine_time_total': 6.0,
+            'machine_time_unit_sel': 'hours',
+        })])
+        self.assertEqual(len(estimate.line_ids.filtered('is_machine_cost_line')), 1)
+
+        template = self.env['partyon.estimate.template'].browse(
+            estimate.action_save_as_template()['res_id']
+        )
+        self.assertEqual(len(template.line_ids), 1)
+        self.assertFalse(template.line_ids.filtered('is_machine_cost_line'))
+        self.assertEqual(template.line_ids.machine_time_total, 6.0)
+
+        other = self._create_estimate(template_id=template.id)
+        other.action_apply_template()
+        self.assertEqual(len(other.line_ids), 1)
+        self.assertFalse(other.line_ids.filtered('is_machine_cost_line'))
+
+        other.write({'line_ids': [
+            fields.Command.update(line.id, {}) for line in other.line_ids
+        ]})
+        machine_lines = other.line_ids.filtered('is_machine_cost_line')
+        self.assertEqual(len(machine_lines), 1)
+        self.assertEqual(machine_lines.hours, 6.0)
+
+    def test_machine_lines_keep_own_hours_with_two_product_lines(self):
+        machine_product = self.env['product.product'].create({
+            'name': 'Coste de máquina (horas)',
+            'standard_price': 8.0,
+            'type': 'consu',
+            'uom_id': self.uom_hour.id,
+        })
+        product_a = self.env['product.product'].create({
+            'name': 'Pieza con máquina A',
+            'standard_price': 10.0,
+            'type': 'consu',
+            'uom_id': self.uom_unit.id,
+            'need_machine_cost': True,
+        })
+        product_b = self.env['product.product'].create({
+            'name': 'Pieza con máquina B',
+            'standard_price': 12.0,
+            'type': 'consu',
+            'uom_id': self.uom_unit.id,
+            'need_machine_cost': True,
+        })
+        self.env['ir.config_parameter'].sudo().set_param(
+            'partyon_presupuestacion.product_machine_cost_cnc', machine_product.id,
+        )
+        estimate = self._create_estimate(line_ids=[
+            fields.Command.create({
                 'line_type': 'material',
-                'product_id': source_product.id,
-                'name': source_product.display_name,
+                'product_id': product_a.id,
+                'name': product_a.display_name,
                 'manual_quantity': 3.0,
-                'pieces': 2.0,
                 'uom_id': self.uom_unit.id,
                 'cost_unit': 10.0,
                 'machine_time_total': 6.0,
-            })],
-        })
-        template_machine_line = template.line_ids.filtered('is_machine_cost_line')
-        template_machine_line.write({'hours': 12.0})
-
-        estimate = self._create_estimate(template_id=template.id)
-        estimate.action_apply_template()
-
+                'machine_time_unit_sel': 'hours',
+            }),
+            fields.Command.create({
+                'line_type': 'material',
+                'product_id': product_b.id,
+                'name': product_b.display_name,
+                'manual_quantity': 5.0,
+                'uom_id': self.uom_unit.id,
+                'cost_unit': 12.0,
+                'machine_time_total': 8.0,
+                'machine_time_unit_sel': 'hours',
+            }),
+        ])
         machine_lines = estimate.line_ids.filtered('is_machine_cost_line')
-        source_line = estimate.line_ids.filtered(lambda line: line.product_id == source_product)
-        self.assertEqual(len(machine_lines), 1)
-        self.assertEqual(source_line.pieces, 2.0)
-        self.assertEqual(machine_lines.hours, 12.0)
-        self.assertEqual(machine_lines.quantity, 12.0)
-        self.assertEqual(machine_lines.cost_subtotal, 96.0)
+        self.assertEqual(len(machine_lines), 2)
+        self.assertEqual(set(machine_lines.mapped('hours')), {6.0, 8.0})
+        self.assertEqual(set(machine_lines.mapped('quantity')), {6.0, 8.0})
+        source_a = estimate.line_ids.filtered(lambda line: line.product_id == product_a)
+        machine_a = machine_lines.filtered(lambda line: line.source_line_id == source_a)
+        self.assertEqual(len(machine_a), 1)
+        self.assertEqual(machine_a.hours, 6.0)
+
+        estimate.write({'line_ids': [
+            fields.Command.update(line.id, {}) for line in estimate.line_ids
+        ]})
+        self.assertEqual(len(estimate.line_ids.filtered('is_machine_cost_line')), 2)
+        self.assertEqual(set(machine_lines.mapped('hours')), {6.0, 8.0})
+        self.assertEqual(set(machine_lines.mapped('quantity')), {6.0, 8.0})
+
+    def test_editing_source_line_does_not_overwrite_machine_hours(self):
+        machine_product = self.env['product.product'].create({
+            'name': 'Coste de máquina (horas)',
+            'standard_price': 8.0,
+            'type': 'consu',
+            'uom_id': self.uom_hour.id,
+        })
+        source_product = self.env['product.product'].create({
+            'name': 'Pieza con máquina',
+            'standard_price': 10.0,
+            'type': 'consu',
+            'uom_id': self.uom_unit.id,
+            'need_machine_cost': True,
+        })
+        self.env['ir.config_parameter'].sudo().set_param(
+            'partyon_presupuestacion.product_machine_cost_cnc', machine_product.id,
+        )
+        estimate = self._create_estimate(line_ids=[fields.Command.create({
+            'line_type': 'material',
+            'product_id': source_product.id,
+            'name': source_product.display_name,
+            'manual_quantity': 3.0,
+            'uom_id': self.uom_unit.id,
+            'cost_unit': 10.0,
+            'machine_time_total': 6.0,
+            'machine_time_unit_sel': 'hours',
+        })])
+        machine_line = estimate.line_ids.filtered('is_machine_cost_line')
+        source_line = estimate.line_ids.filtered(lambda line: not line.is_machine_cost_line)
+        self.assertEqual(len(machine_line), 1)
+
+        source_line.write({'manual_quantity': 10.0})
+        self.assertEqual(source_line.quantity, 10.0)
+        self.assertEqual(machine_line.hours, 6.0)
+        self.assertEqual(machine_line.quantity, 6.0)
+
+        estimate.write({'line_ids': [fields.Command.delete(source_line.id)]})
+        self.assertEqual(machine_line.exists(), self.env['partyon.estimate.line'])
+        self.assertFalse(estimate.line_ids.filtered('is_machine_cost_line'))
+
+    def test_copy_estimate_regenerates_machine_lines_once(self):
+        machine_product = self.env['product.product'].create({
+            'name': 'Coste de máquina (horas)',
+            'standard_price': 8.0,
+            'type': 'consu',
+            'uom_id': self.uom_hour.id,
+        })
+        product_a = self.env['product.product'].create({
+            'name': 'Pieza con máquina A',
+            'standard_price': 10.0,
+            'type': 'consu',
+            'uom_id': self.uom_unit.id,
+            'need_machine_cost': True,
+        })
+        product_b = self.env['product.product'].create({
+            'name': 'Pieza con máquina B',
+            'standard_price': 12.0,
+            'type': 'consu',
+            'uom_id': self.uom_unit.id,
+            'need_machine_cost': True,
+        })
+        self.env['ir.config_parameter'].sudo().set_param(
+            'partyon_presupuestacion.product_machine_cost_cnc', machine_product.id,
+        )
+        estimate = self._create_estimate(line_ids=[
+            fields.Command.create({
+                'line_type': 'material',
+                'product_id': product_a.id,
+                'name': product_a.display_name,
+                'manual_quantity': 3.0,
+                'uom_id': self.uom_unit.id,
+                'cost_unit': 10.0,
+                'machine_time_total': 6.0,
+                'machine_time_unit_sel': 'hours',
+            }),
+            fields.Command.create({
+                'line_type': 'material',
+                'product_id': product_b.id,
+                'name': product_b.display_name,
+                'manual_quantity': 5.0,
+                'uom_id': self.uom_unit.id,
+                'cost_unit': 12.0,
+                'machine_time_total': 8.0,
+                'machine_time_unit_sel': 'hours',
+            }),
+        ])
+        new_estimate = estimate.copy()
+        self.assertEqual(len(estimate.line_ids), 4)
+        self.assertEqual(len(new_estimate.line_ids), 4)
+        self.assertEqual(
+            len(new_estimate.line_ids.filtered('is_machine_cost_line')), 2,
+        )
+        self.assertEqual(
+            set(new_estimate.line_ids.filtered('is_machine_cost_line').mapped('hours')),
+            {6.0, 8.0},
+        )
+
+    def test_machine_time_supports_minutes_by_default(self):
+        machine_product = self.env['product.product'].create({
+            'name': 'Coste de máquina (horas)',
+            'standard_price': 8.0,
+            'type': 'consu',
+            'uom_id': self.uom_hour.id,
+        })
+        source_product = self.env['product.product'].create({
+            'name': 'Pieza con máquina',
+            'standard_price': 10.0,
+            'type': 'consu',
+            'uom_id': self.uom_unit.id,
+            'need_machine_cost': True,
+        })
+        self.env['ir.config_parameter'].sudo().set_param(
+            'partyon_presupuestacion.product_machine_cost_cnc', machine_product.id,
+        )
+        estimate = self._create_estimate(line_ids=[fields.Command.create({
+            'line_type': 'material',
+            'product_id': source_product.id,
+            'name': source_product.display_name,
+            'manual_quantity': 3.0,
+            'uom_id': self.uom_unit.id,
+            'cost_unit': 10.0,
+            'machine_time_total': 90.0,
+        })])
+        source_line = estimate.line_ids.filtered(lambda line: not line.is_machine_cost_line)
+        machine_line = estimate.line_ids.filtered('is_machine_cost_line')
+        self.assertEqual(source_line.machine_time_unit_sel, 'minutes')
+        self.assertEqual(len(machine_line), 1)
+        self.assertEqual(machine_line.hours, 1.5)
+        self.assertEqual(machine_line.quantity, 1.5)
+        self.assertEqual(machine_line.uom_id, self.uom_hour)
+
+        machine_line.write({'hours': 2.0})
+        self.assertEqual(machine_line.quantity, 2.0)
+
+    def test_copy_estimate_preserves_machine_time_unit(self):
+        machine_product = self.env['product.product'].create({
+            'name': 'Coste de máquina (horas)',
+            'standard_price': 8.0,
+            'type': 'consu',
+            'uom_id': self.uom_hour.id,
+        })
+        source_product = self.env['product.product'].create({
+            'name': 'Pieza con máquina',
+            'standard_price': 10.0,
+            'type': 'consu',
+            'uom_id': self.uom_unit.id,
+            'need_machine_cost': True,
+        })
+        self.env['ir.config_parameter'].sudo().set_param(
+            'partyon_presupuestacion.product_machine_cost_cnc', machine_product.id,
+        )
+        estimate = self._create_estimate(line_ids=[fields.Command.create({
+            'line_type': 'material',
+            'product_id': source_product.id,
+            'name': source_product.display_name,
+            'manual_quantity': 3.0,
+            'uom_id': self.uom_unit.id,
+            'cost_unit': 10.0,
+            'machine_time_total': 90.0,
+        })])
+        new_estimate = estimate.copy()
+        new_source_line = new_estimate.line_ids.filtered(
+            lambda line: not line.is_machine_cost_line
+        )
+        new_machine_line = new_estimate.line_ids.filtered('is_machine_cost_line')
+        self.assertEqual(new_source_line.machine_time_unit_sel, 'minutes')
+        self.assertEqual(len(new_machine_line), 1)
+        self.assertEqual(new_machine_line.hours, 1.5)
+        self.assertEqual(new_machine_line.quantity, 1.5)
+        self.assertEqual(new_machine_line.source_line_id, new_source_line)
 
     def test_apply_template_copies_pieces_for_normal_product(self):
         area_product = self.env['product.product'].create({
