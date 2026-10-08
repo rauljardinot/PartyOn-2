@@ -46,6 +46,42 @@ class TestPartyonEstimate(TransactionCase):
         estimate_values.update(values)
         return self.env['partyon.estimate'].create(estimate_values)
 
+    def test_configuration_values_are_defaults_for_new_estimates(self):
+        settings = self.env['res.config.settings'].with_user(
+            self.env.ref('base.user_admin'),
+        ).create({
+            'product_machine_cost_cnc': self.product.id,
+            'product_machine_cost_wire': self.product.id,
+            'product_machine_cost_3d': self.product.id,
+            'estimate_default_margin_value': 27.5,
+            'estimate_default_discount_renting': 0.45,
+            'estimate_default_quote_detail_mode': 'detail',
+            'estimate_default_notes_customer': 'Condiciones de prueba\nSegunda línea',
+        })
+        settings.execute()
+
+        estimate = self.env['partyon.estimate'].create({
+            'estimate_name': 'Presupuesto con valores configurados',
+            'partner_id': self.partner.id,
+            'line_ids': [fields.Command.create({
+                'line_type': 'material',
+                'name': 'Material de prueba',
+                'manual_quantity': 1.0,
+                'uom_id': self.uom_unit.id,
+                'cost_unit': 100.0,
+            })],
+        })
+
+        self.assertEqual(estimate.margin_type, 'percent')
+        self.assertAlmostEqual(estimate.margin_value, 27.5)
+        self.assertAlmostEqual(estimate.line_ids.discount_renting, 0.45)
+        self.assertEqual(estimate.quote_detail_mode, 'detail')
+        self.assertEqual(estimate.notes_customer, 'Condiciones de prueba\nSegunda línea')
+
+        estimate.line_ids.write({'apply_renting_margin': True})
+        estimate.line_ids.write({'apply_renting_margin': False})
+        self.assertAlmostEqual(estimate.line_ids.discount_renting, 0.45)
+
     def test_area_quantity_cost_and_percentage_margin(self):
         estimate = self._create_estimate(line_ids=[fields.Command.create({
             'line_type': 'material',

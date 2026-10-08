@@ -323,7 +323,12 @@ class PartyonEstimateLine(models.Model):
         compute='_compute_sale_tax_values',
         currency_field='currency_id',
     )
-    discount_renting = fields.Float(string="Descuento", default=0.7)
+    discount_renting = fields.Float(
+        string='Descuento',
+        default=lambda self: float(self.env['ir.config_parameter'].sudo().get_param(
+            'partyon_presupuestacion.default_discount_renting', 0.7,
+        )),
+    )
     apply_renting_margin = fields.Boolean(
         string='Aplicar beneficio',
         compute='_compute_apply_renting_margin',

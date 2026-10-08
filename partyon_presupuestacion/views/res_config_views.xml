@@ -9,6 +9,24 @@
             <field name="arch" type="xml">
                 <xpath expr="//form" position="inside">
                     <app name="partyon_presupuestacion" string="Presupuestación">
+                        <block title="Valores predeterminados de presupuestos">
+                            <setting id="default_estimate_margin_value"
+                                     help="Margen inicial aplicado a los presupuestos nuevos. El método predeterminado es porcentaje sobre coste.">
+                                <field name="estimate_default_margin_value"/>
+                            </setting>
+                            <setting id="default_estimate_discount_renting"
+                                     help="Descuento de alquiler inicial para las líneas nuevas.">
+                                <field name="estimate_default_discount_renting" widget="percentage"/>
+                            </setting>
+                            <setting id="default_estimate_quote_detail_mode"
+                                     help="Presentación inicial de las cotizaciones al cliente.">
+                                <field name="estimate_default_quote_detail_mode"/>
+                            </setting>
+                            <setting id="default_estimate_notes_customer"
+                                     help="Texto inicial de condiciones y notas visibles para el cliente.">
+                                <field name="estimate_default_notes_customer" widget="text"/>
+                            </setting>
+                        </block>
                         <block title="Productos de Coste de Maquinaria">
                             <setting id="setings_product_machine" help="Añade aquí el producto de coste de maquinaria de la cnc.">
                                 <field name="product_machine_cost_cnc"/>

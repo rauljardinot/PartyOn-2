@@ -92,7 +92,12 @@ class PartyonEstimate(models.Model):
     )
     description = fields.Text(string='Descripción del trabajo')
     notes_internal = fields.Text(string='Notas internas')
-    notes_customer = fields.Text(string='Condiciones y notas para el cliente')
+    notes_customer = fields.Text(
+        string='Condiciones y notas para el cliente',
+        default=lambda self: self.env['ir.config_parameter'].sudo().get_param(
+            'partyon_presupuestacion.default_notes_customer', '',
+        ) or '',
+    )
     sale_order_id = fields.Many2one(
         'sale.order',
         string='Cotización',
@@ -149,7 +154,9 @@ class PartyonEstimate(models.Model):
     )
     margin_value = fields.Float(
         string='Margen',
-        default=40.0,
+        default=lambda self: float(self.env['ir.config_parameter'].sudo().get_param(
+            'partyon_presupuestacion.default_margin_value', 40.0,
+        )),
         help='Porcentaje sobre el coste o importe fijo, según el método elegido.',
     )
     manual_sale_price = fields.Monetary(
@@ -182,7 +189,9 @@ class PartyonEstimate(models.Model):
         [('summary', 'Una línea resumida'), ('detail', 'Desglose de líneas')],
         string='Presentación al cliente',
         required=True,
-        default='summary',
+        default=lambda self: self.env['ir.config_parameter'].sudo().get_param(
+            'partyon_presupuestacion.default_quote_detail_mode', 'summary',
+        ),
     )
     approved_by = fields.Many2one(
         'res.users', string='Aprobado por', copy=False, readonly=True,

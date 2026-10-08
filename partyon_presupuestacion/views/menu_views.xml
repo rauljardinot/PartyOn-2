@@ -22,6 +22,21 @@
               parent="partyon_menu_root"
               sequence="90"/>
 
+    <record id="partyon_presupuestacion_settings_action" model="ir.actions.act_window">
+        <field name="name">Ajustes</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+        <field name="context">{'module': 'partyon_presupuestacion'}</field>
+    </record>
+
+    <menuitem id="partyon_menu_config_settings"
+              name="Ajustes"
+              parent="partyon_menu_config"
+              action="partyon_presupuestacion_settings_action"
+              groups="base.group_system"
+              sequence="20"/>
+
     <menuitem id="partyon_menu_config_estimate_categ"
               name="Categorías"
               parent="partyon_menu_config"
