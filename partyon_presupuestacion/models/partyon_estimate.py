@@ -149,7 +149,7 @@ class PartyonEstimate(models.Model):
     )
     margin_value = fields.Float(
         string='Margen',
-        default=30.0,
+        default=40.0,
         help='Porcentaje sobre el coste o importe fijo, según el método elegido.',
     )
     manual_sale_price = fields.Monetary(

@@ -33,7 +33,7 @@ class PartyonEstimateTemplate(models.Model):
         required=True,
         default='percent',
     )
-    margin_value = fields.Float(string='Margen', default=30.0)
+    margin_value = fields.Float(string='Margen', default=40.0)
     manual_sale_price = fields.Monetary(
         string='Precio final',
         currency_field='currency_id',
