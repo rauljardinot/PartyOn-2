@@ -324,6 +324,12 @@ class PartyonEstimateLine(models.Model):
         currency_field='currency_id',
     )
     discount_renting = fields.Float(string="Descuento", default=0.7)
+    apply_renting_margin = fields.Boolean(
+        string='Aplicar beneficio',
+        compute='_compute_apply_renting_margin',
+        inverse='_inverse_apply_renting_margin',
+        readonly=False,
+    )
     machine_time_total = fields.Float(string="Tiempo total de máquinaria", default=0)
     machine_time_unit_sel = fields.Selection(
         [("minutes", "Minutos"), ("hours", "Horas")],
@@ -347,6 +353,16 @@ class PartyonEstimateLine(models.Model):
         string="Tipo de producto",
         default='cnc'
     )
+
+    @api.depends('discount_renting')
+    def _compute_apply_renting_margin(self):
+        for line in self:
+            line.apply_renting_margin = not line.discount_renting
+
+    def _inverse_apply_renting_margin(self):
+        default_discount = self.default_get(['discount_renting']).get('discount_renting', 0.7)
+        for line in self:
+            line.discount_renting = 0.0 if line.apply_renting_margin else default_discount
 
     # @api.depends('product_id')
     # def _compute_machine_time_per_unit(self):
@@ -446,6 +462,7 @@ class PartyonEstimateLine(models.Model):
             'waste_percent': self.waste_percent,
             'uom_id': self.uom_id.id,
             'cost_unit': self.cost_unit,
+            'discount_renting': self.discount_renting,
             'machine_time_total': self.machine_time_total,
             'machine_time_unit_sel': self.machine_time_unit_sel,
             'machine_product_type': self.machine_product_type,
@@ -465,19 +482,30 @@ class PartyonEstimateLine(models.Model):
     @api.depends(
         'quantity', 'cost_subtotal', 'estimate_id.sale_price',
         'estimate_id.subtotal_cost', 'estimate_id.line_ids.cost_subtotal',
-        'estimate_id.is_for_renting', 'discount_renting',
+        'estimate_id.is_for_renting', 'estimate_id.margin_type',
+        'estimate_id.margin_value', 'estimate_id.manual_sale_price',
+        'discount_renting',
     )
     def _compute_sale_values(self):
+        renting_subtotals_by_estimate = {}
         for line in self:
             estimate = line.estimate_id
             if not estimate or not estimate.line_ids:
                 sale_subtotal = 0.0
+            elif estimate.margin_type == 'manual':
+                sale_subtotal = (
+                    estimate.manual_sale_price * line.cost_subtotal / estimate.subtotal_cost
+                    if estimate.subtotal_cost
+                    else estimate.manual_sale_price / len(estimate.line_ids)
+                )
+            elif estimate.is_for_renting:
+                if estimate.id not in renting_subtotals_by_estimate:
+                    renting_subtotals_by_estimate[estimate.id] = estimate._get_renting_sale_subtotals()
+                sale_subtotal = renting_subtotals_by_estimate[estimate.id].get(line.id, 0.0)
             elif estimate.subtotal_cost:
                 sale_subtotal = estimate.sale_price * line.cost_subtotal / estimate.subtotal_cost
             else:
                 sale_subtotal = estimate.sale_price / len(estimate.line_ids)
-            if estimate.is_for_renting:
-                sale_subtotal *= (1.0 - line.discount_renting)
             line.sale_subtotal = sale_subtotal
             line.sale_unit = sale_subtotal / line.quantity if line.quantity else 0.0
             line.margin_amount = sale_subtotal - line.cost_subtotal

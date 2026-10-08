@@ -233,13 +233,22 @@ class PartyonEstimate(models.Model):
                 estimate[field_name] = totals[line_type]
             estimate.subtotal_cost = sum(totals.values())
 
-    @api.depends('subtotal_cost', 'margin_type', 'margin_value', 'manual_sale_price')
+    @api.depends(
+        'subtotal_cost', 'margin_type', 'margin_value', 'manual_sale_price',
+        'is_for_renting', 'line_ids.cost_subtotal', 'line_ids.discount_renting',
+    )
     def _compute_sale_price(self):
         for estimate in self:
             if estimate.margin_type == 'percent':
-                sale_price = estimate.subtotal_cost * (1.0 + estimate.margin_value / 100.0)
+                if estimate.is_for_renting:
+                    sale_price = sum(estimate._get_renting_sale_subtotals().values())
+                else:
+                    sale_price = estimate.subtotal_cost * (1.0 + estimate.margin_value / 100.0)
             elif estimate.margin_type == 'amount':
-                sale_price = estimate.subtotal_cost + estimate.margin_value
+                if estimate.is_for_renting:
+                    sale_price = sum(estimate._get_renting_sale_subtotals().values())
+                else:
+                    sale_price = estimate.subtotal_cost + estimate.margin_value
             else:
                 sale_price = estimate.manual_sale_price
             estimate.sale_price = sale_price
@@ -248,6 +257,41 @@ class PartyonEstimate(models.Model):
                 estimate.margin_amount / estimate.subtotal_cost
                 if estimate.subtotal_cost else 0.0
             )
+
+    def _get_renting_sale_subtotals(self):
+        """Return per-line sale bases for a rental estimate.
+
+        Lines with a rental discount are charged at their discounted cost. The
+        estimate margin is only added to lines whose rental discount is zero.
+        """
+        self.ensure_one()
+        lines = self.line_ids
+        margin_lines = lines.filtered(lambda line: not line.discount_renting)
+        margin_cost = sum(margin_lines.mapped('cost_subtotal'))
+        margin_by_line = dict.fromkeys(margin_lines.ids, 0.0)
+
+        if self.margin_type == 'percent':
+            margin_by_line = {
+                line.id: line.cost_subtotal * self.margin_value / 100.0
+                for line in margin_lines
+            }
+        elif self.margin_type == 'amount' and margin_lines:
+            if margin_cost:
+                margin_by_line = {
+                    line.id: self.margin_value * line.cost_subtotal / margin_cost
+                    for line in margin_lines
+                }
+            else:
+                share = self.margin_value / len(margin_lines)
+                margin_by_line = {line.id: share for line in margin_lines}
+
+        sale_subtotals = {}
+        for line in lines:
+            if line.discount_renting:
+                sale_subtotals[line.id] = line.cost_subtotal * (1.0 - line.discount_renting)
+            else:
+                sale_subtotals[line.id] = line.cost_subtotal + margin_by_line.get(line.id, 0.0)
+        return sale_subtotals
 
     @api.depends('line_ids.sale_tax_amount', 'line_ids.sale_total')
     def _compute_sale_tax_totals(self):
