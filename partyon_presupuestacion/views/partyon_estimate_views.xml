@@ -17,7 +17,7 @@
                             <field name="manual_quantity" invisible="calculation_method != 'manual'"/>
                             <field name="time_unit_sel" invisible="calculation_method != 'hours'"/>
                             <field name="hours" invisible="calculation_method != 'hours'"/>
-                            <field name="pieces" invisible="calculation_method not in ('area', 'volume', 'hours')"/>
+                            <field name="pieces" invisible="calculation_method not in ('area', 'volume', 'hours', 'length')"/>
                             <field name="apply_renting_margin"
                                    invisible="not parent.is_for_renting or parent.margin_type == 'manual'"
                                    widget="boolean_toggle"/>
