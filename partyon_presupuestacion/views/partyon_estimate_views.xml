@@ -317,8 +317,9 @@
         <field name="model">partyon.estimate</field>
         <field name="arch" type="xml">
             <search string="Buscar presupuestos">
-                <field name="name"/>
-                <field name="estimate_name"/>
+                <field name="estimate_name" string="Trabajo"
+                       filter_domain="['|', ('estimate_name', 'ilike', self), ('name', 'ilike', self)]"/>
+                <field name="name" string="Referencia"/>
                 <field name="partner_id"/>
                 <field name="user_id"/>
                 <filter string="Borrador" name="draft" domain="[('state', '=', 'draft')]"/>

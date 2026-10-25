@@ -243,9 +243,20 @@ class PartyonEstimateCostMixin(models.AbstractModel):
             if line.calculation_method != 'manual':
                 reference_uom = line._get_calculation_reference_uom()
                 if not line.uom_id or not reference_uom._has_common_reference(line.uom_id):
+                    line_desc = line.product_id.display_name if line.product_id else line.name
+                    method_label = dict(CALCULATION_METHODS).get(line.calculation_method, line.calculation_method)
+                    current_uom = line.uom_id.display_name if line.uom_id else _('sin unidad')
                     raise ValidationError(_(
-                        'La unidad de consumo no es compatible con el tipo de cálculo seleccionado.'
-                    ))
+                        'La línea "%(line)s" no se puede guardar: la unidad de consumo '
+                        '"%(uom)s" no es compatible con el método de cálculo "%(method)s". '
+                        'Se espera una unidad de %(category)s (por ejemplo "%(example)s").'
+                    ) % {
+                        'line': line_desc,
+                        'uom': current_uom,
+                        'method': method_label,
+                        'category': reference_uom.category_id.name or reference_uom.display_name,
+                        'example': reference_uom.display_name,
+                    })
                 if line.product_id and line.uom_id != line.product_id.uom_id:
                     raise ValidationError(_(
                         'La unidad de la línea debe ser la unidad configurada en el producto.'
