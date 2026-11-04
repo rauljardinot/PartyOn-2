@@ -360,6 +360,15 @@ class PartyonEstimateLine(models.Model):
         string='Línea origen',
         index=True,
     )
+    machine_cost_line_ids = fields.One2many(
+        'partyon.estimate.line',
+        'source_line_id',
+        string='Costes de maquinaria',
+        domain=[('is_machine_cost_line', '=', True)],
+    )
+    machine_lines_grouped = fields.Boolean(
+        related='estimate_id.machine_lines_grouped',
+    )
     machine_product_type = fields.Selection(
         [
             ('cnc', 'CNC'),

@@ -471,6 +471,77 @@ class TestPartyonEstimate(TransactionCase):
         self.assertEqual(set(machine_lines.mapped('hours')), {6.0, 8.0})
         self.assertEqual(set(machine_lines.mapped('quantity')), {6.0, 8.0})
 
+    def test_machine_lines_are_grouped_for_new_estimates_without_double_costing(self):
+        machine_product = self.env['product.product'].create({
+            'name': 'Coste de máquina (horas)',
+            'standard_price': 8.0,
+            'type': 'consu',
+            'uom_id': self.uom_hour.id,
+        })
+        source_product = self.env['product.product'].create({
+            'name': 'Pieza con máquina',
+            'standard_price': 10.0,
+            'type': 'consu',
+            'uom_id': self.uom_unit.id,
+            'need_machine_cost': True,
+        })
+        self.env['ir.config_parameter'].sudo().set_param(
+            'partyon_presupuestacion.product_machine_cost_cnc', machine_product.id,
+        )
+
+        # Existing estimates keep their original, ungrouped presentation flag.
+        old_estimate = self._create_estimate(line_ids=[fields.Command.create({
+            'line_type': 'material',
+            'product_id': source_product.id,
+            'name': source_product.display_name,
+            'manual_quantity': 3.0,
+            'uom_id': self.uom_unit.id,
+            'cost_unit': 10.0,
+            'machine_time_total': 6.0,
+            'machine_time_unit_sel': 'hours',
+        })],
+        )
+        # Simulate an existing row from before the presentation change.
+        old_estimate.write({'machine_lines_grouped': False})
+        self.assertFalse(old_estimate.machine_lines_grouped)
+        self.assertEqual(len(old_estimate.line_ids), 2)
+
+        estimate = self._create_estimate(line_ids=[fields.Command.create({
+            'line_type': 'material',
+            'product_id': source_product.id,
+            'name': source_product.display_name,
+            'manual_quantity': 3.0,
+            'uom_id': self.uom_unit.id,
+            'cost_unit': 10.0,
+            'machine_time_total': 6.0,
+            'machine_time_unit_sel': 'hours',
+        })])
+        source_line = estimate.line_ids.filtered(lambda line: not line.is_machine_cost_line)
+        machine_line = estimate.line_ids.filtered('is_machine_cost_line')
+
+        self.assertTrue(estimate.machine_lines_grouped)
+        self.assertEqual(source_line.machine_cost_line_ids, machine_line)
+        self.assertAlmostEqual(source_line.cost_subtotal, 30.0)
+        self.assertAlmostEqual(machine_line.cost_subtotal, 48.0)
+        self.assertAlmostEqual(estimate.subtotal_cost, 78.0)
+        self.assertAlmostEqual(estimate.sale_price, 101.4)
+
+        # Editing the nested machine line updates the estimate once; it does not
+        # also add the machine subtotal to the source line's own subtotal.
+        machine_line.write({'hours': 9.0})
+        self.assertAlmostEqual(source_line.machine_time_total, 6.0)
+        self.assertAlmostEqual(source_line.cost_subtotal, 30.0)
+        self.assertAlmostEqual(machine_line.cost_subtotal, 72.0)
+        self.assertAlmostEqual(estimate.subtotal_cost, 102.0)
+        self.assertAlmostEqual(estimate.sale_price, 132.6)
+
+        detailed_lines = estimate._prepare_detailed_sale_lines()
+        self.assertEqual(len(detailed_lines), 2)
+        self.assertEqual(
+            sum(values['product_id'] == machine_product.id for values in detailed_lines),
+            1,
+        )
+
     def test_editing_source_line_does_not_overwrite_machine_hours(self):
         machine_product = self.env['product.product'].create({
             'name': 'Coste de máquina (horas)',
@@ -558,6 +629,7 @@ class TestPartyonEstimate(TransactionCase):
             }),
         ])
         new_estimate = estimate.copy()
+        self.assertTrue(new_estimate.machine_lines_grouped)
         self.assertEqual(len(estimate.line_ids), 4)
         self.assertEqual(len(new_estimate.line_ids), 4)
         self.assertEqual(

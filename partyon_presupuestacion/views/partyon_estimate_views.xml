@@ -30,7 +30,24 @@
                             <field name="machine_time_unit_sel" widget="radio" invisible="not product_id or not need_machine_cost"/>
                             <field name="machine_product_type" invisible="not product_id or not need_machine_cost"/>
                             <field name="need_machine_cost" invisible="1"/>
+                            <field name="machine_lines_grouped" invisible="1"/>
                         </group>
+                    </group>
+                    <group string="Costes de maquinaria"
+                           invisible="not machine_lines_grouped or not need_machine_cost">
+                        <field name="machine_cost_line_ids" nolabel="1">
+                            <list create="0" delete="0" editable="bottom">
+                                <field name="product_id" readonly="1"/>
+                                <field name="name" readonly="1"/>
+                                <field name="hours" string="Horas"/>
+                                <field name="time_unit_sel" string="Unidad de tiempo"/>
+                                <field name="quantity" string="Cantidad calculada" readonly="1"/>
+                                <field name="uom_id" readonly="1"/>
+                                <field name="cost_unit" string="Coste por hora"/>
+                                <field name="cost_subtotal" string="Coste total" readonly="1"/>
+                                <field name="currency_id" column_invisible="1"/>
+                            </list>
+                        </field>
                     </group>
                     <group string="Medidas" invisible="calculation_method not in ('area', 'volume', 'length')">
                         <group>
@@ -149,7 +166,38 @@
                     </group>
                     <notebook>
                         <page string="Costes" name="cost_lines">
+                            <field name="machine_lines_grouped" invisible="1"/>
                             <field name="line_ids"
+                                   invisible="machine_lines_grouped"
+                                   mode="list"
+                                   context="{'form_view_ref': 'partyon_presupuestacion.partyon_estimate_line_view_form', 'dialog_size': 'large'}">
+                                <list default_order="sequence, id">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="product_id"/>
+                                    <field name="apply_renting_margin" string="Aplicar beneficio"
+                                           column_invisible="not parent.is_for_renting or parent.margin_type == 'manual'"
+                                           widget="boolean_toggle"/>
+                                    <field name="discount_renting"
+                                           column_invisible="not parent.is_for_renting or parent.margin_type == 'manual'"
+                                           widget="percentage"/>
+                                    <field name="name" optional="hide"/>
+                                    <field name="width" string="Ancho"/>
+                                    <field name="height" string="Largo"/>
+                                    <field name="pieces"/>
+                                    <field name="quantity" readonly="1"/>
+                                    <field name="uom_id" readonly="1"/>
+                                    <field name="cost_subtotal" sum="Coste total"/>
+                                    <field name="available_quantity" optional="hide" readonly="1"/>
+                                    <field name="remaining_quantity" optional="hide" readonly="1"/>
+                                    <field name="shortage_quantity" optional="hide" readonly="1"
+                                           decoration-danger="shortage_quantity &gt; 0"/>
+                                    <field name="is_machine_cost_line" column_invisible="1"/>
+                                    <field name="currency_id" column_invisible="1"/>
+                                </list>
+                            </field>
+                            <field name="line_ids"
+                                   invisible="not machine_lines_grouped"
+                                   domain="['|', ('is_machine_cost_line', '=', False), ('source_line_id', '=', False)]"
                                    mode="list"
                                    context="{'form_view_ref': 'partyon_presupuestacion.partyon_estimate_line_view_form', 'dialog_size': 'large'}">
                                 <list default_order="sequence, id">

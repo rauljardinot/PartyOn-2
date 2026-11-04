@@ -200,6 +200,14 @@ class PartyonEstimate(models.Model):
         string='Fecha de aprobación', copy=False, readonly=True,
     )
     is_for_renting = fields.Boolean(string="Para Alquiler", default=False)
+    machine_lines_grouped = fields.Boolean(
+        string='Líneas de maquinaria agrupadas',
+        default=False,
+        copy=False,
+        readonly=True,
+        help='Los presupuestos creados con esta opción muestran cada coste de '
+             'maquinaria dentro de su línea de origen.',
+    )
 
     product_ids = fields.One2many('product.product', inverse_name='estimate_id', string='Productos')
     product_count = fields.Integer(string="Productos", compute='_compute_product_count', store=True,)
@@ -357,6 +365,9 @@ class PartyonEstimate(models.Model):
         for values in vals_list:
             if not values.get('name') or values['name'] in (_('Nuevo'), 'New'):
                 values['name'] = self.env['ir.sequence'].next_by_code('partyon.estimate') or _('Nuevo')
+            # This is a presentation change for estimates created from now on.
+            # Existing database rows keep the field's False default.
+            values['machine_lines_grouped'] = True
         estimates = super().create(vals_list)
         if not self.env.context.get('skip_machine_cost_sync'):
             estimates._sync_machine_cost_lines()
