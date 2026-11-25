@@ -75,6 +75,10 @@ class PartyonEstimateTemplateLine(models.Model):
         related='template_id.currency_id',
         store=True,
     )
+    renting_benefit_percent = fields.Float(
+        string='Beneficio de alquiler',
+        default=0.0,
+    )
     machine_time_total = fields.Float(string='Tiempo total de maquinaria', default=0.0)
     machine_time_unit_sel = fields.Selection(
         [('minutes', 'Minutos'), ('hours', 'Horas')],
@@ -138,6 +142,7 @@ class PartyonEstimateTemplateLine(models.Model):
             'waste_percent': self.waste_percent,
             'uom_id': self.uom_id.id,
             'cost_unit': self.cost_unit,
+            'renting_benefit_percent': self.renting_benefit_percent,
             'machine_time_total': self.machine_time_total,
             'machine_time_unit_sel': self.machine_time_unit_sel,
             'is_machine_cost_line': self.is_machine_cost_line,

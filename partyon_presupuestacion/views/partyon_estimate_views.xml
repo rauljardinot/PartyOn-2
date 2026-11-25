@@ -18,11 +18,12 @@
                             <field name="time_unit_sel" invisible="calculation_method != 'hours'"/>
                             <field name="hours" invisible="calculation_method != 'hours'"/>
                             <field name="pieces" invisible="calculation_method not in ('area', 'volume', 'hours', 'length')"/>
-                            <field name="apply_renting_margin"
-                                   invisible="not parent.is_for_renting or parent.margin_type == 'manual'"
-                                   widget="boolean_toggle"/>
+                            <field name="renting_benefit_percent"
+                                   string="Beneficio"
+                                   invisible="not parent.is_for_renting"
+                                   widget="percentage"/>
                             <field name="discount_renting"
-                                   invisible="not parent.is_for_renting or parent.margin_type == 'manual'"
+                                   invisible="not parent.is_for_renting"
                                    widget="percentage"/>
 
                             <separator string="Tiempo de Máquina" invisible="not product_id or not need_machine_cost"/>
@@ -174,11 +175,11 @@
                                 <list default_order="sequence, id">
                                     <field name="sequence" widget="handle"/>
                                     <field name="product_id"/>
-                                    <field name="apply_renting_margin" string="Aplicar beneficio"
-                                           column_invisible="not parent.is_for_renting or parent.margin_type == 'manual'"
-                                           widget="boolean_toggle"/>
+                                    <field name="renting_benefit_percent" string="Beneficio"
+                                           column_invisible="not parent.is_for_renting"
+                                           widget="percentage"/>
                                     <field name="discount_renting"
-                                           column_invisible="not parent.is_for_renting or parent.margin_type == 'manual'"
+                                           column_invisible="not parent.is_for_renting"
                                            widget="percentage"/>
                                     <field name="name" optional="hide"/>
                                     <field name="width" string="Ancho"/>
@@ -203,11 +204,11 @@
                                 <list default_order="sequence, id">
                                     <field name="sequence" widget="handle"/>
                                     <field name="product_id"/>
-                                    <field name="apply_renting_margin" string="Aplicar beneficio"
-                                           column_invisible="not parent.is_for_renting or parent.margin_type == 'manual'"
-                                           widget="boolean_toggle"/>
+                                    <field name="renting_benefit_percent" string="Beneficio"
+                                           column_invisible="not parent.is_for_renting"
+                                           widget="percentage"/>
                                     <field name="discount_renting"
-                                           column_invisible="not parent.is_for_renting or parent.margin_type == 'manual'"
+                                           column_invisible="not parent.is_for_renting"
                                            widget="percentage"/>
                                     <field name="name" optional="hide"/>
                                     <field name="width" string="Ancho"/>
@@ -228,11 +229,11 @@
                         <page string="Precio y beneficio" name="pricing">
                             <group>
                                 <group string="Configuración">
-                                    <field name="margin_type" readonly="state != 'draft'"/>
+                                    <field name="margin_type" readonly="state != 'draft' or is_for_renting"/>
                                     <field name="margin_value" invisible="margin_type == 'manual'"
-                                           readonly="state != 'draft'"/>
+                                           readonly="state != 'draft' or is_for_renting"/>
                                     <field name="manual_sale_price" invisible="margin_type != 'manual'"
-                                           readonly="state != 'draft'"/>
+                                           readonly="state != 'draft' or is_for_renting"/>
                                     <field name="quote_detail_mode" readonly="state != 'draft'"/>
                                 </group>
                                 <group string="Resultado">

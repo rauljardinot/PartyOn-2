@@ -75,12 +75,9 @@ class TestPartyonEstimate(TransactionCase):
         self.assertEqual(estimate.margin_type, 'percent')
         self.assertAlmostEqual(estimate.margin_value, 27.5)
         self.assertAlmostEqual(estimate.line_ids.discount_renting, 0.45)
+        self.assertAlmostEqual(estimate.line_ids.renting_benefit_percent, 0.0)
         self.assertEqual(estimate.quote_detail_mode, 'detail')
         self.assertEqual(estimate.notes_customer, 'Condiciones de prueba\nSegunda línea')
-
-        estimate.line_ids.write({'apply_renting_margin': True})
-        estimate.line_ids.write({'apply_renting_margin': False})
-        self.assertAlmostEqual(estimate.line_ids.discount_renting, 0.45)
 
     def test_area_quantity_cost_and_percentage_margin(self):
         estimate = self._create_estimate(line_ids=[fields.Command.create({
@@ -754,11 +751,13 @@ class TestPartyonEstimate(TransactionCase):
                 'uom_id': self.uom_unit.id,
                 'cost_unit': 10.0,
                 'discount_renting': 0.3,
+                'renting_benefit_percent': 0.3,
             })],
         )
         line = estimate.line_ids
         self.assertFalse(estimate.is_for_renting)
         self.assertAlmostEqual(line.discount_renting, 0.3)
+        self.assertAlmostEqual(line.renting_benefit_percent, 0.3)
         self.assertAlmostEqual(line.sale_subtotal, 130.0)
         self.assertAlmostEqual(line.sale_unit, 13.0)
         self.assertAlmostEqual(line.margin_amount, 30.0)
@@ -840,7 +839,12 @@ class TestPartyonEstimate(TransactionCase):
         self.assertAlmostEqual(estimate.subtotal_cost, 200.0)
         self.assertAlmostEqual(estimate.sale_price, 100.0)
 
-    def test_renting_discount_is_independent_per_line(self):
+        line.write({'renting_benefit_percent': 0.3})
+        self.assertAlmostEqual(line.sale_subtotal, 130.0)
+        self.assertAlmostEqual(line.sale_unit, 6.5)
+        self.assertAlmostEqual(estimate.sale_price, 130.0)
+
+    def test_renting_discount_and_benefit_are_independent_per_line(self):
         estimate = self._create_estimate(
             is_for_renting=True,
             line_ids=[
@@ -860,6 +864,7 @@ class TestPartyonEstimate(TransactionCase):
                     'uom_id': self.uom_unit.id,
                     'cost_unit': 100.0,
                     'discount_renting': 0.0,
+                    'renting_benefit_percent': 0.3,
                 }),
             ],
         )
@@ -873,7 +878,7 @@ class TestPartyonEstimate(TransactionCase):
         self.assertAlmostEqual(labor_line.sale_unit, 130.0)
         self.assertAlmostEqual(estimate.sale_tax_amount, 0.0)
 
-    def test_renting_margin_toggle_sets_and_restores_default_discount(self):
+    def test_renting_benefit_applies_before_discount(self):
         estimate = self._create_estimate(
             is_for_renting=True,
             line_ids=[fields.Command.create({
@@ -882,21 +887,42 @@ class TestPartyonEstimate(TransactionCase):
                 'manual_quantity': 1.0,
                 'uom_id': self.uom_unit.id,
                 'cost_unit': 100.0,
+                'discount_renting': 0.7,
+                'renting_benefit_percent': 0.3,
+            }), fields.Command.create({
+                'line_type': 'material',
+                'name': 'Producto compuesto con beneficio incluido',
+                'manual_quantity': 1.0,
+                'uom_id': self.uom_unit.id,
+                'cost_unit': 130.0,
+                'discount_renting': 0.7,
             })],
         )
-        line = estimate.line_ids
-        self.assertAlmostEqual(line.discount_renting, 0.7)
-        self.assertFalse(line.apply_renting_margin)
+        simple_line, composite_line = estimate.line_ids
+        self.assertEqual(estimate.margin_type, 'percent')
+        self.assertAlmostEqual(estimate.margin_value, 0.0)
+        self.assertAlmostEqual(simple_line.renting_benefit_percent, 0.3)
+        self.assertAlmostEqual(simple_line.sale_subtotal, 39.0)
+        self.assertAlmostEqual(composite_line.renting_benefit_percent, 0.0)
+        self.assertAlmostEqual(composite_line.sale_subtotal, 39.0)
+        self.assertAlmostEqual(estimate.sale_price, 78.0)
 
-        line.write({'apply_renting_margin': True})
-        self.assertEqual(line.discount_renting, 0.0)
-        self.assertTrue(line.apply_renting_margin)
+        estimate.write({'margin_type': 'amount', 'margin_value': 50.0})
+        self.assertEqual(estimate.margin_type, 'percent')
+        self.assertAlmostEqual(estimate.margin_value, 0.0)
 
-        line.write({'apply_renting_margin': False})
-        self.assertAlmostEqual(line.discount_renting, 0.7)
-        self.assertFalse(line.apply_renting_margin)
+    def test_switching_to_renting_resets_global_pricing(self):
+        estimate = self._create_estimate(
+            margin_type='amount',
+            margin_value=50.0,
+        )
+        estimate.write({'is_for_renting': True})
 
-    def test_renting_percentage_margin_only_applies_to_zero_discount_lines(self):
+        self.assertEqual(estimate.margin_type, 'percent')
+        self.assertAlmostEqual(estimate.margin_value, 0.0)
+        self.assertAlmostEqual(estimate.sale_price, 30.0)
+
+    def test_renting_line_benefit_is_applied_independently(self):
         estimate = self._create_estimate(
             is_for_renting=True,
             margin_type='percent',
@@ -909,6 +935,7 @@ class TestPartyonEstimate(TransactionCase):
                     'uom_id': self.uom_unit.id,
                     'cost_unit': 100.0,
                     'discount_renting': 0.7,
+                    'renting_benefit_percent': 0.3,
                 }),
                 fields.Command.create({
                     'line_type': 'labor',
@@ -921,12 +948,12 @@ class TestPartyonEstimate(TransactionCase):
             ],
         )
         rental_product, extra_line = estimate.line_ids
-        self.assertAlmostEqual(rental_product.sale_subtotal, 30.0)
-        self.assertAlmostEqual(extra_line.sale_subtotal, 65.0)
-        self.assertAlmostEqual(estimate.sale_price, 95.0)
-        self.assertAlmostEqual(estimate.margin_amount, -55.0)
+        self.assertAlmostEqual(rental_product.sale_subtotal, 39.0)
+        self.assertAlmostEqual(extra_line.sale_subtotal, 50.0)
+        self.assertAlmostEqual(estimate.sale_price, 89.0)
+        self.assertAlmostEqual(estimate.margin_amount, -61.0)
 
-    def test_renting_fixed_margin_is_distributed_only_to_zero_discount_lines(self):
+    def test_renting_forces_percent_margin_and_zero_global_value(self):
         estimate = self._create_estimate(
             is_for_renting=True,
             margin_type='amount',
@@ -951,11 +978,13 @@ class TestPartyonEstimate(TransactionCase):
             ],
         )
         rental_product, extra_line = estimate.line_ids
+        self.assertEqual(estimate.margin_type, 'percent')
+        self.assertAlmostEqual(estimate.margin_value, 0.0)
         self.assertAlmostEqual(rental_product.sale_subtotal, 30.0)
-        self.assertAlmostEqual(extra_line.sale_subtotal, 80.0)
-        self.assertAlmostEqual(estimate.sale_price, 110.0)
+        self.assertAlmostEqual(extra_line.sale_subtotal, 50.0)
+        self.assertAlmostEqual(estimate.sale_price, 80.0)
 
-    def test_manual_sale_price_overrides_rental_margin_and_discounts(self):
+    def test_renting_ignores_manual_sale_price_and_uses_line_pricing(self):
         estimate = self._create_estimate(
             is_for_renting=True,
             margin_type='manual',
@@ -979,8 +1008,10 @@ class TestPartyonEstimate(TransactionCase):
                 }),
             ],
         )
-        self.assertAlmostEqual(estimate.sale_price, 180.0)
-        self.assertAlmostEqual(sum(estimate.line_ids.mapped('sale_subtotal')), 180.0)
+        self.assertEqual(estimate.margin_type, 'percent')
+        self.assertAlmostEqual(estimate.margin_value, 0.0)
+        self.assertAlmostEqual(estimate.sale_price, 80.0)
+        self.assertAlmostEqual(sum(estimate.line_ids.mapped('sale_subtotal')), 80.0)
 
     def test_renting_final_price_flows_to_quote_and_generated_product(self):
         estimate = self._create_estimate(
@@ -995,6 +1026,7 @@ class TestPartyonEstimate(TransactionCase):
                     'uom_id': self.uom_unit.id,
                     'cost_unit': 100.0,
                     'discount_renting': 0.7,
+                    'renting_benefit_percent': 0.3,
                 }),
                 fields.Command.create({
                     'line_type': 'labor',
@@ -1006,12 +1038,12 @@ class TestPartyonEstimate(TransactionCase):
                 }),
             ],
         )
-        self.assertAlmostEqual(estimate.sale_price, 95.0)
+        self.assertAlmostEqual(estimate.sale_price, 89.0)
 
         estimate.action_review()
         estimate.action_approve()
         estimate.action_create_sale_order()
-        self.assertAlmostEqual(estimate.sale_order_id.order_line.price_unit, 95.0)
+        self.assertAlmostEqual(estimate.sale_order_id.order_line.price_unit, 89.0)
 
         wizard = self.env['product.from.estimate.wizard'].with_context(
             active_id=estimate.id,
@@ -1023,7 +1055,7 @@ class TestPartyonEstimate(TransactionCase):
         generated_product = self.env['product.product'].search([
             ('name', '=', 'Producto final de alquiler'),
         ], limit=1)
-        self.assertAlmostEqual(generated_product.list_price, 95.0)
+        self.assertAlmostEqual(generated_product.list_price, 89.0)
 
     def test_estimate_can_be_saved_as_template(self):
         estimate = self._create_estimate(
@@ -1031,6 +1063,7 @@ class TestPartyonEstimate(TransactionCase):
             margin_value=25.0,
             quote_detail_mode='detail',
         )
+        estimate.line_ids.write({'renting_benefit_percent': 0.25})
         action = estimate.action_save_as_template()
         template = self.env['partyon.estimate.template'].browse(action['res_id'])
         self.assertEqual(template.name, estimate.estimate_name)
@@ -1039,6 +1072,14 @@ class TestPartyonEstimate(TransactionCase):
         self.assertEqual(template.quote_detail_mode, estimate.quote_detail_mode)
         self.assertEqual(len(template.line_ids), len(estimate.line_ids))
         self.assertEqual(template.line_ids.name, estimate.line_ids.name)
+        self.assertAlmostEqual(template.line_ids.renting_benefit_percent, 0.25)
+
+        rental_estimate = self._create_estimate(
+            is_for_renting=True,
+            template_id=template.id,
+        )
+        rental_estimate.action_apply_template()
+        self.assertAlmostEqual(rental_estimate.line_ids.renting_benefit_percent, 0.25)
 
     def test_summary_sale_order_uses_sale_price_and_internal_cost(self):
         estimate = self._create_estimate()

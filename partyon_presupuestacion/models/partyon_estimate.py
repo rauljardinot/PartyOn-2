@@ -253,19 +253,16 @@ class PartyonEstimate(models.Model):
     @api.depends(
         'subtotal_cost', 'margin_type', 'margin_value', 'manual_sale_price',
         'is_for_renting', 'line_ids.cost_subtotal', 'line_ids.discount_renting',
+        'line_ids.renting_benefit_percent',
     )
     def _compute_sale_price(self):
         for estimate in self:
-            if estimate.margin_type == 'percent':
-                if estimate.is_for_renting:
-                    sale_price = sum(estimate._get_renting_sale_subtotals().values())
-                else:
-                    sale_price = estimate.subtotal_cost * (1.0 + estimate.margin_value / 100.0)
+            if estimate.is_for_renting:
+                sale_price = sum(estimate._get_renting_sale_subtotals().values())
+            elif estimate.margin_type == 'percent':
+                sale_price = estimate.subtotal_cost * (1.0 + estimate.margin_value / 100.0)
             elif estimate.margin_type == 'amount':
-                if estimate.is_for_renting:
-                    sale_price = sum(estimate._get_renting_sale_subtotals().values())
-                else:
-                    sale_price = estimate.subtotal_cost + estimate.margin_value
+                sale_price = estimate.subtotal_cost + estimate.margin_value
             else:
                 sale_price = estimate.manual_sale_price
             estimate.sale_price = sale_price
@@ -278,37 +275,17 @@ class PartyonEstimate(models.Model):
     def _get_renting_sale_subtotals(self):
         """Return per-line sale bases for a rental estimate.
 
-        Lines with a rental discount are charged at their discounted cost. The
-        estimate margin is only added to lines whose rental discount is zero.
+        A line benefit is added to its cost before applying the rental
+        discount. This supports simple products whose cost does not include a
+        benefit while leaving composite products at their default of zero.
         """
         self.ensure_one()
-        lines = self.line_ids
-        margin_lines = lines.filtered(lambda line: not line.discount_renting)
-        margin_cost = sum(margin_lines.mapped('cost_subtotal'))
-        margin_by_line = dict.fromkeys(margin_lines.ids, 0.0)
-
-        if self.margin_type == 'percent':
-            margin_by_line = {
-                line.id: line.cost_subtotal * self.margin_value / 100.0
-                for line in margin_lines
-            }
-        elif self.margin_type == 'amount' and margin_lines:
-            if margin_cost:
-                margin_by_line = {
-                    line.id: self.margin_value * line.cost_subtotal / margin_cost
-                    for line in margin_lines
-                }
-            else:
-                share = self.margin_value / len(margin_lines)
-                margin_by_line = {line.id: share for line in margin_lines}
-
-        sale_subtotals = {}
-        for line in lines:
-            if line.discount_renting:
-                sale_subtotals[line.id] = line.cost_subtotal * (1.0 - line.discount_renting)
-            else:
-                sale_subtotals[line.id] = line.cost_subtotal + margin_by_line.get(line.id, 0.0)
-        return sale_subtotals
+        return {
+            line.id: line.cost_subtotal
+            * (1.0 + line.renting_benefit_percent)
+            * (1.0 - line.discount_renting)
+            for line in self.line_ids
+        }
 
     @api.depends('line_ids.sale_tax_amount', 'line_ids.sale_total')
     def _compute_sale_tax_totals(self):
@@ -354,6 +331,22 @@ class PartyonEstimate(models.Model):
             if estimate.margin_type == 'manual' and estimate.manual_sale_price < 0:
                 raise ValidationError(_('El precio final no puede ser negativo.'))
 
+    @api.constrains('is_for_renting', 'margin_type', 'margin_value')
+    def _check_renting_pricing(self):
+        for estimate in self:
+            if estimate.is_for_renting and (
+                estimate.margin_type != 'percent' or estimate.margin_value
+            ):
+                raise ValidationError(_(
+                    'Los presupuestos de alquiler deben usar porcentaje global 0.'
+                ))
+
+    @api.onchange('is_for_renting')
+    def _onchange_is_for_renting(self):
+        if self.is_for_renting:
+            self.margin_type = 'percent'
+            self.margin_value = 0.0
+
     @api.constrains('date', 'date_validity')
     def _check_validity_date(self):
         for estimate in self:
@@ -363,6 +356,11 @@ class PartyonEstimate(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for values in vals_list:
+            if values.get('is_for_renting'):
+                values.update({
+                    'margin_type': 'percent',
+                    'margin_value': 0.0,
+                })
             if not values.get('name') or values['name'] in (_('Nuevo'), 'New'):
                 values['name'] = self.env['ir.sequence'].next_by_code('partyon.estimate') or _('Nuevo')
             # This is a presentation change for estimates created from now on.
@@ -374,7 +372,17 @@ class PartyonEstimate(models.Model):
         return estimates
 
     def write(self, vals):
-        result = super().write(vals)
+        vals = dict(vals)
+        rental_records = self.filtered(
+            lambda estimate: vals.get('is_for_renting', estimate.is_for_renting)
+        )
+        regular_records = self - rental_records
+        result = True
+        if regular_records:
+            result = super(PartyonEstimate, regular_records).write(vals) and result
+        if rental_records:
+            rental_vals = dict(vals, margin_type='percent', margin_value=0.0)
+            result = super(PartyonEstimate, rental_records).write(rental_vals) and result
         if 'line_ids' in vals and not self.env.context.get('skip_machine_cost_sync'):
             self._sync_machine_cost_lines()
         return result
@@ -515,6 +523,7 @@ class PartyonEstimate(models.Model):
                 'waste_percent': line.waste_percent,
                 'uom_id': line.uom_id.id,
                 'cost_unit': line.cost_unit,
+                'renting_benefit_percent': line.renting_benefit_percent,
                 'machine_time_total': line.machine_time_total,
                 'machine_time_unit_sel': line.machine_time_unit_sel,
             }) for line in self.line_ids if not line.is_machine_cost_line]

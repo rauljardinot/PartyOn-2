@@ -340,11 +340,11 @@ class PartyonEstimateLine(models.Model):
             'partyon_presupuestacion.default_discount_renting', 0.7,
         )),
     )
-    apply_renting_margin = fields.Boolean(
-        string='Aplicar beneficio',
-        compute='_compute_apply_renting_margin',
-        inverse='_inverse_apply_renting_margin',
-        readonly=False,
+    renting_benefit_percent = fields.Float(
+        string='Beneficio de alquiler',
+        default=0.0,
+        help='Beneficio aplicado antes del descuento de alquiler. '
+             '30% se almacena como 0,30.',
     )
     machine_time_total = fields.Float(string="Tiempo total de máquinaria", default=0)
     machine_time_unit_sel = fields.Selection(
@@ -379,15 +379,11 @@ class PartyonEstimateLine(models.Model):
         default='cnc'
     )
 
-    @api.depends('discount_renting')
-    def _compute_apply_renting_margin(self):
+    @api.constrains('renting_benefit_percent')
+    def _check_renting_benefit_percent(self):
         for line in self:
-            line.apply_renting_margin = not line.discount_renting
-
-    def _inverse_apply_renting_margin(self):
-        default_discount = self.default_get(['discount_renting']).get('discount_renting', 0.7)
-        for line in self:
-            line.discount_renting = 0.0 if line.apply_renting_margin else default_discount
+            if line.renting_benefit_percent < 0:
+                raise ValidationError(_('El beneficio de alquiler no puede ser negativo.'))
 
     # @api.depends('product_id')
     # def _compute_machine_time_per_unit(self):
@@ -488,6 +484,7 @@ class PartyonEstimateLine(models.Model):
             'uom_id': self.uom_id.id,
             'cost_unit': self.cost_unit,
             'discount_renting': self.discount_renting,
+            'renting_benefit_percent': self.renting_benefit_percent,
             'machine_time_total': self.machine_time_total,
             'machine_time_unit_sel': self.machine_time_unit_sel,
             'machine_product_type': self.machine_product_type,
@@ -509,7 +506,7 @@ class PartyonEstimateLine(models.Model):
         'estimate_id.subtotal_cost', 'estimate_id.line_ids.cost_subtotal',
         'estimate_id.is_for_renting', 'estimate_id.margin_type',
         'estimate_id.margin_value', 'estimate_id.manual_sale_price',
-        'discount_renting',
+        'discount_renting', 'renting_benefit_percent',
     )
     def _compute_sale_values(self):
         renting_subtotals_by_estimate = {}
@@ -517,16 +514,16 @@ class PartyonEstimateLine(models.Model):
             estimate = line.estimate_id
             if not estimate or not estimate.line_ids:
                 sale_subtotal = 0.0
+            elif estimate.is_for_renting:
+                if estimate.id not in renting_subtotals_by_estimate:
+                    renting_subtotals_by_estimate[estimate.id] = estimate._get_renting_sale_subtotals()
+                sale_subtotal = renting_subtotals_by_estimate[estimate.id].get(line.id, 0.0)
             elif estimate.margin_type == 'manual':
                 sale_subtotal = (
                     estimate.manual_sale_price * line.cost_subtotal / estimate.subtotal_cost
                     if estimate.subtotal_cost
                     else estimate.manual_sale_price / len(estimate.line_ids)
                 )
-            elif estimate.is_for_renting:
-                if estimate.id not in renting_subtotals_by_estimate:
-                    renting_subtotals_by_estimate[estimate.id] = estimate._get_renting_sale_subtotals()
-                sale_subtotal = renting_subtotals_by_estimate[estimate.id].get(line.id, 0.0)
             elif estimate.subtotal_cost:
                 sale_subtotal = estimate.sale_price * line.cost_subtotal / estimate.subtotal_cost
             else:
